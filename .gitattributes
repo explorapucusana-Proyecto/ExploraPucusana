@@ -1,2 +1,4 @@
 codificadores_pucusana.pkl filter=lfs diff=lfs merge=lfs -text
 modelo_pucusana.pkl filter=lfs diff=lfs merge=lfs -text
+turismo/codificadores_pucusana.pkl filter=lfs diff=lfs merge=lfs -text
+turismo/modelo_pucusana.pkl filter=lfs diff=lfs merge=lfs -text
