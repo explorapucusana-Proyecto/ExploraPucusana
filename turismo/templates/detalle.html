@@ -86,29 +86,29 @@
                         </a>
                     </div>
 
-                    <!-- BOTONES PARA COMPARTIR -->
+                    <!-- BOTONES PARA COMPARTIR (HU09) -->
                     <div class="mt-6 pt-6 border-t border-slate-100 flex flex-wrap items-center gap-2">
-                       <span class="text-xs font-semibold text-slate-400 uppercase mr-2">Compartir:</span>
+                        <span class="text-xs font-semibold text-slate-400 uppercase mr-2">Compartir:</span>
     
-                     <a href="https://api.whatsapp.com/send?text=¡Mira este increíble lugar en Pucusana! Te invito a visitarlo: {{ request.build_absolute_uri }}" 
-                     target="_blank" 
-                     onclick="registrarCompartido({{ lugar.id }})"
-                     class="btn btn-xs bg-[#25D366] hover:bg-[#128C7E] text-white border-none rounded-lg gap-1.5">
-                     <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp
-                     </a>
+                        <a href="https://api.whatsapp.com/send?text=¡Mira este increíble lugar en Pucusana! Te invito a visitarlo: {{ request.build_absolute_uri }}" 
+                           target="_blank" 
+                           onclick="registrarCompartido({{ lugar.id }})"
+                           class="btn btn-xs bg-[#25D366] hover:bg-[#128C7E] text-white border-none rounded-lg gap-1.5">
+                            <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp
+                        </a>
 
-                     <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri }}" 
-                     target="_blank" 
-                     onclick="registrarCompartido({{ lugar.id }})"
-                     class="btn btn-xs bg-[#1877F2] hover:bg-[#166FE5] text-white border-none rounded-lg gap-1.5">
-                     <i class="fa-brands fa-facebook text-sm"></i> Facebook
-                      </a>
+                        <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri }}" 
+                           target="_blank" 
+                           onclick="registrarCompartido({{ lugar.id }})"
+                           class="btn btn-xs bg-[#1877F2] hover:bg-[#166FE5] text-white border-none rounded-lg gap-1.5">
+                            <i class="fa-brands fa-facebook text-sm"></i> Facebook
+                        </a>
 
-                     <button onclick="copiarEnlace({{ lugar.id }})" 
-                       class="btn btn-xs btn-ghost text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg gap-1.5">
-                       <i class="fa-solid fa-link text-xs"></i> Copiar enlace
-                      </button>
-                   </div>
+                        <button onclick="copiarEnlace({{ lugar.id }})" 
+                                class="btn btn-xs btn-ghost text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg gap-1.5">
+                            <i class="fa-solid fa-link text-xs"></i> Copiar enlace
+                        </button>
+                    </div>
                 </div>
 
             </div>
@@ -184,7 +184,6 @@
                         </div>
                     </div>
 
-                    <!-- Estrellas de puntuación -->
                     <div class="text-amber-400 text-sm">
                         {% for i in "12345" %}
                             {% if forloop.counter <= resena.calificacion %}★{% else %}<span class="text-slate-200">★</span>{% endif %}
@@ -206,32 +205,42 @@
 </div>
 {% endblock %}
 
-
 {% block extra_scripts %}
+<!-- Recursos de Leaflet por si no están en base.html -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 {% if lugar.latitud and lugar.longitud %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        var lat = parseFloat("{{ lugar.latitud|stringformat:'f' }}");
-        var lng = parseFloat("{{ lugar.longitud|stringformat:'f' }}");
+        var lat = parseFloat("{{ lugar.latitud|stringformat:'f' }}".replace(',', '.'));
+        var lng = parseFloat("{{ lugar.longitud|stringformat:'f' }}".replace(',', '.'));
         
+        var contenedor = document.getElementById('mapa');
+        if (!contenedor) return;
+
         if (!isNaN(lat) && !isNaN(lng)) {
             var map = L.map('mapa').setView([lat, lng], 16);
 
-            // Capa libre de OpenStreetMap (Sin marcas de agua ni API key)
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            // Capa OSM Francia / Hot: 100% abierta, sin errores 403 y sin marcas de agua
+            L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
 
+            setTimeout(function() {
+                map.invalidateSize();
+            }, 300);
+
             var marker = L.marker([lat, lng]).addTo(map);
-            marker.bindPopup("<b class='text-slate-900 font-bold'>{{ lugar.nombre }}</b><br><span class='text-xs text-slate-500'>¡Te esperamos aquí!</span>").openPopup();
+            marker.bindPopup("<b class='text-slate-900 font-bold'>{{ lugar.nombre|escapejs }}</b><br><span class='text-xs text-slate-500'>¡Te esperamos aquí!</span>").openPopup();
         }
     });
 </script>
 {% endif %}
 
 <script>
-    // Funciones de difusión (HU09) activas para todos los atractivos
+    // Funciones de difusión social (HU09)
     function registrarCompartido(lugarId) {
         fetch(`/api/lugar/${lugarId}/compartir/`, {
             method: 'POST',

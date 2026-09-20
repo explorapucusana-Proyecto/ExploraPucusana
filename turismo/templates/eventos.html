@@ -27,12 +27,14 @@
     {% if eventos %}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {% for evento in eventos %}
-        <div class="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
+        <!-- TARJETA CLICABLE -->
+        <div onclick="document.getElementById('modal_evento_{{ evento.id }}').showModal()" 
+             class="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between cursor-pointer group hover:-translate-y-1">
             <div>
-                <!-- IMAGEN DEL EVENTO -->
+                <!-- IMAGEN DE PORTADA DE LA TARJETA -->
                 <div class="relative h-48 bg-slate-100 overflow-hidden">
                     {% if evento.imagen %}
-                        <img src="{{ evento.imagen.url }}" alt="{{ evento.titulo }}" class="w-full h-full object-cover">
+                        <img src="{{ evento.imagen.url }}" alt="{{ evento.titulo }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                     {% else %}
                         <div class="w-full h-full bg-gradient-to-r from-blue-900 to-slate-900 flex items-center justify-center text-white text-3xl">
                             🎉
@@ -52,7 +54,7 @@
                         <i class="fa-regular fa-clock"></i>
                         {{ evento.fecha_inicio|date:"d M, Y — H:i" }} hrs
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 mb-2">
+                    <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition">
                         {{ evento.titulo }}
                     </h3>
                     <p class="text-slate-500 text-sm leading-relaxed line-clamp-3">
@@ -61,16 +63,127 @@
                 </div>
             </div>
 
-            <!-- METADATOS Y LUGAR -->
-            <div class="px-6 pb-6 pt-4 border-t border-slate-50 bg-slate-50/50 flex flex-col gap-1 text-xs text-slate-600">
+            <!-- METADATOS Y ACCIÓN -->
+            <div class="px-6 pb-6 pt-4 border-t border-slate-50 bg-slate-50/50 flex flex-col gap-2 text-xs text-slate-600">
                 <div>
                     <span class="font-semibold text-slate-700">📍 Ubicación:</span> {{ evento.ubicacion }}
                 </div>
                 <div>
                     <span class="font-semibold text-slate-700">🏛️ Organiza:</span> {{ evento.organizador }}
                 </div>
+                <div class="pt-2 flex items-center justify-between">
+                    <span class="text-blue-600 font-bold flex items-center gap-1 group-hover:translate-x-1 transition text-xs">
+                        Ver información completa <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    </span>
+                    {% if evento.imagen %}
+                    <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                        <i class="fa-solid fa-image"></i> Flyer
+                    </span>
+                    {% endif %}
+                </div>
             </div>
         </div>
+
+        <!-- MODAL CON DETALLE COMPLETO -->
+        <dialog id="modal_evento_{{ evento.id }}" class="modal">
+            <div class="modal-box bg-white rounded-3xl p-6 sm:p-8 max-w-lg">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <div class="flex items-center gap-2">
+                        {% if evento.categoria %}
+                        <span class="badge badge-info bg-blue-50 text-blue-600 border-none font-bold text-xs">
+                            {{ evento.categoria.nombre }}
+                        </span>
+                        {% endif %}
+                        <span class="text-xs text-slate-400 font-medium">
+                            <i class="fa-regular fa-calendar"></i> {{ evento.fecha_inicio|date:"d M, Y" }}
+                        </span>
+                    </div>
+
+                    <!-- BOTÓN VER FLYER (SI TIENE IMAGEN) -->
+                    {% if evento.imagen %}
+                    <button type="button" 
+                            onclick="document.getElementById('modal_flyer_{{ evento.id }}').showModal()"
+                            class="btn btn-xs bg-emerald-600 hover:bg-emerald-700 text-white border-none rounded-lg gap-1 shadow-sm">
+                        <i class="fa-solid fa-image text-xs"></i> Ver Flyer
+                    </button>
+                    {% endif %}
+                </div>
+
+                <h3 class="font-black text-2xl text-slate-900 leading-snug mb-3">
+                    {{ evento.titulo }}
+                </h3>
+
+                <p class="text-slate-600 text-sm leading-relaxed mb-6 whitespace-pre-line">
+                    {{ evento.descripcion }}
+                </p>
+
+                <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100 text-xs text-slate-600 space-y-2 mb-6">
+                    <div>
+                        <b class="text-slate-800">⏰ Horario:</b> {{ evento.fecha_inicio|date:"d/m/Y — H:i" }} hrs
+                    </div>
+                    <div>
+                        <b class="text-slate-800">📍 Punto de encuentro:</b> {{ evento.ubicacion }}
+                    </div>
+                    <div>
+                        <b class="text-slate-800">🏛️ Entidad responsable:</b> {{ evento.organizador }}
+                    </div>
+                </div>
+
+                <div class="modal-action flex items-center justify-end gap-2">
+                    {% if evento.imagen %}
+                    <button type="button" 
+                            onclick="document.getElementById('modal_flyer_{{ evento.id }}').showModal()"
+                            class="btn btn-sm btn-outline border-emerald-500 text-emerald-600 hover:bg-emerald-50 rounded-xl gap-1.5">
+                        <i class="fa-solid fa-expand text-xs"></i> Ver Flyer Oficial
+                    </button>
+                    {% endif %}
+                    
+                    <form method="dialog">
+                        <button class="btn btn-sm bg-slate-900 hover:bg-slate-800 text-white rounded-xl border-none px-5">
+                            Cerrar
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button>Cerrar</button>
+            </form>
+        </dialog>
+
+        <!-- SUBMODAL EXCLUSIVO PARA DESPLEGAR EL FLYER EN ALTA RESOLUCIÓN -->
+        {% if evento.imagen %}
+        <dialog id="modal_flyer_{{ evento.id }}" class="modal">
+            <div class="modal-box bg-slate-950/95 text-white rounded-3xl p-4 max-w-2xl border border-slate-800">
+                <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+                    <h4 class="font-bold text-sm text-slate-200 flex items-center gap-2">
+                        <i class="fa-solid fa-bullhorn text-emerald-400"></i> Afiche Oficial: {{ evento.titulo }}
+                    </h4>
+                    <form method="dialog">
+                        <button class="btn btn-xs btn-circle btn-ghost text-slate-400 hover:text-white">✕</button>
+                    </form>
+                </div>
+                
+                <div class="flex justify-center items-center bg-black/40 rounded-2xl overflow-hidden p-1">
+                    <img src="{{ evento.imagen.url }}" alt="{{ evento.titulo }}" class="w-full max-h-[75vh] object-contain rounded-xl shadow-2xl">
+                </div>
+                
+                <div class="modal-action mt-3 flex justify-between items-center">
+                    <a href="{{ evento.imagen.url }}" target="_blank" download class="btn btn-xs btn-ghost text-slate-300 gap-1 hover:text-white">
+                        <i class="fa-solid fa-arrow-down"></i> Abrir imagen original
+                    </a>
+                    <form method="dialog">
+                        <button class="btn btn-xs bg-slate-800 hover:bg-slate-700 text-white rounded-lg border-none px-4">
+                            Regresar
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button>Cerrar</button>
+            </form>
+        </dialog>
+        {% endif %}
+
         {% endfor %}
     </div>
     {% else %}
