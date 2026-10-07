@@ -1,4 +1,7 @@
 {% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Mi Perfil" %} — {% trans "Explora Pucusana" %}{% endblock %}
 
 {% block content %}
 <!-- Bloque del Globo Flotante de Notificación de Éxito (Django Messages) -->
@@ -40,7 +43,7 @@
                 <span class="text-3xl font-bold">{{ user.username|make_list|first|upper }}</span>
               </div>
             </div>
-            <h2 class="text-3xl font-bold">Perfil de {{ user.username }}</h2>
+            <h2 class="text-3xl font-bold">{% trans "Perfil de" %} {{ user.username }}</h2>
             
             <!-- Muestra del Correo Electrónico del Turista -->
             {% if user.email %}
@@ -48,17 +51,17 @@
                 📧 <span>{{ user.email }}</span>
             </p>
             {% else %}
-            <p class="text-amber-300 text-xs mt-1 italic">⚠️ Correo no registrado</p>
+            <p class="text-amber-300 text-xs mt-1 italic">⚠️ {% trans "Correo no registrado" %}</p>
             {% endif %}
             
-            <p class="text-blue-100 mt-2 text-sm">Personaliza tu experiencia en Explora Pucusana</p>
+            <p class="text-blue-100 mt-2 text-sm">{% trans "Personaliza tu experiencia en Explora Pucusana" %}</p>
         </div>
 
         <form method="POST" class="p-8">
             {% csrf_token %}
             
-            <h3 class="text-xl font-bold text-gray-800 border-b pb-2 mb-6">Tus Intereses Turísticos 🎯</h3>
-            <p class="text-gray-500 mb-6 text-sm">Selecciona las categorías que más te gustan. Usaremos Inteligencia Artificial para recomendarte los mejores lugares.</p>
+            <h3 class="text-xl font-bold text-gray-800 border-b pb-2 mb-6">{% trans "Tus Intereses Turísticos" %} 🎯</h3>
+            <p class="text-gray-500 mb-6 text-sm">{% trans "Selecciona las categorías que más te gustan. Usaremos Inteligencia Artificial para recomendarte los mejores lugares." %}</p>
             
             <div class="flex flex-wrap gap-3 mb-10">
                 {% for cat in categorias %}
@@ -74,21 +77,21 @@
                 {% endfor %}
             </div>
 
-            <h3 class="text-xl font-bold text-gray-800 border-b pb-2 mb-6">Datos Demográficos 🌎</h3>
+            <h3 class="text-xl font-bold text-gray-800 border-b pb-2 mb-6">{% trans "Datos Demográficos" %} 🌎</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Edad</label>
-                    <input type="number" name="edad" value="{{ perfil.edad|default_if_none:'' }}" placeholder="Ej. 25" class="input input-bordered w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{% trans "Edad" %}</label>
+                    <input type="number" name="edad" value="{{ perfil.edad|default_if_none:'' }}" placeholder="{% trans 'Ej. 25' %}" class="input input-bordered w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nacionalidad</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{% trans "Nacionalidad" %}</label>
                     <input type="text" name="nacionalidad" value="{{ perfil.nacionalidad|default_if_none:'Peruano' }}" class="input input-bordered w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                 </div>
             </div>
 
             <div class="flex justify-end mt-8 pt-6 border-t border-gray-100">
                 <button type="submit" class="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white border-none w-full sm:w-auto px-10 text-lg shadow-md">
-                    Guardar Preferencias 💾
+                    {% trans "Guardar Preferencias" %} 💾
                 </button>
             </div>
         </form>

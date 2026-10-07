@@ -27,4 +27,20 @@ urlpatterns = [
 
     # Panel Administrativo y Dashboard
     path('dashboard/', views.dashboard_municipal, name='dashboard_municipal'),
+
+    # HU10: Panel de Gestión Municipal (CRUD)
+    path('gestion-municipal/lugares/', views.admin_lugares_lista, name='admin_lugares_lista'),
+    path('gestion-municipal/lugares/crear/', views.admin_lugar_crear, name='admin_lugar_crear'),
+    path('gestion-municipal/lugares/editar/<int:lugar_id>/', views.admin_lugar_editar, name='admin_lugar_editar'),
+    path('gestion-municipal/lugares/eliminar/<int:lugar_id>/', views.admin_lugar_eliminar, name='admin_lugar_eliminar'),
+    
+    # Telemetría interna pasiva (Sin interacción de usuario)
+    path('api/telemetria/lugar/<int:lugar_id>/', views.telemetria_visita_interna, name='telemetria_visita_interna'),
+
+    # HU11: Dashboard Descriptivo Municipal
+    path('gestion-municipal/dashboard/', views.dashboard_municipal, name='dashboard_municipal'),
+    path('api/analytics/descriptivo/', views.api_analytics_descriptivo, name='api_analytics_descriptivo'),
+
+    path('api/analytics/predictivo/', views.api_analytics_predictivo, name='api_analytics_predictivo'),
+
 ]

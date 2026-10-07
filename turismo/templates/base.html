@@ -1,10 +1,12 @@
+{% load i18n %}
 {% load static %}
 <!DOCTYPE html>
-<html lang="es" data-theme="light">
+<html lang="{{ LANGUAGE_CODE }}" data-theme="light" class="h-full overflow-x-hidden">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Explora Pucusana{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}{% trans "Explora Pucusana" %}{% endblock %}</title>
+
     <!-- FAVICON INSTITUCIONAL -->
     <link rel="icon" type="image/png" href="{% static 'img/escudo.png' %}?v=3">
     <link rel="shortcut icon" type="image/png" href="{% static 'img/escudo.png' %}?v=3">
@@ -25,75 +27,112 @@
     
     <style>
         body { font-family: 'Inter', sans-serif; }
+        
+        /* Ocultar barra de desplazamiento en contenedores con scroll horizontal */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
 
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-slate-50 text-slate-800 flex flex-col min-h-screen">
+<body class="bg-slate-50 text-slate-800 flex flex-col min-h-screen w-full overflow-x-hidden antialiased">
     
-    <!-- NAVBAR REFINADA -->
-    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-sm">
-      <div class="navbar max-w-7xl mx-auto px-4">
-        <div class="flex-1">
-          <!-- LOGO CON ESCUDO INSTITUCIONAL -->
-          <a href="{% url 'index' %}" class="flex items-center gap-3 font-black text-xl sm:text-2xl text-slate-900 tracking-tight hover:opacity-95 transition">
-              <img src="{% static 'img/escudo.png' %}" 
-                   alt="Escudo Municipalidad de Pucusana" 
-                   class="h-14 w-auto max-w-[60px] object-contain drop-shadow-md py-1">
-              <span class="flex items-center">Explora <span class="text-blue-600 ml-1.5">Pucusana</span></span>
-          </a>
-        </div>
-        
-        <div class="flex-none">
-          <ul class="menu menu-horizontal px-1 items-center gap-1">
-              
-              {% if user.is_authenticated %}
-                {% if user.is_staff %}
-                  <li>
-                      <a href="{% url 'dashboard_municipal' %}" class="btn btn-sm btn-ghost font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200">
-                          <i class="fa-solid fa-chart-pie text-xs"></i> Panel Gestor
-                      </a>
-                  </li>
+    <!-- NAVBAR REFINADA Y FIJA -->
+    <header class="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm transition-all">
+      <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16 sm:h-20 gap-2 sm:gap-4">
+
+          <!-- LOGO CON ESCUDO INSTITUCIONAL (Siempre visible a la izquierda) -->
+          <div class="flex-shrink-0 flex items-center">
+            <a href="{% if user.is_authenticated %}{% url 'index' %}{% else %}{% url 'login' %}{% endif %}" 
+               class="flex items-center gap-2 sm:gap-3 group select-none">
+                <img src="{% static 'img/escudo.png' %}" 
+                     alt="{% trans 'Escudo Municipalidad de Pucusana' %}" 
+                     class="h-10 sm:h-12 w-auto max-w-[50px] sm:max-w-[60px] object-contain drop-shadow-sm group-hover:scale-105 transition duration-200 py-1">
+                <span class="font-black text-lg sm:text-2xl text-slate-900 tracking-tight whitespace-nowrap">
+                    Explora <span class="text-blue-600">Pucusana</span>
+                </span>
+            </a>
+          </div>
+          
+          <!-- ZONA DE ACCIONES Y NAVEGACIÓN (Scroll horizontal autónomo en celular sin mover la pantalla) -->
+          <div class="flex-1 flex items-center justify-end overflow-x-auto no-scrollbar py-1 gap-1.5 sm:gap-2">
+            
+            <!-- SELECTOR GLOBAL DE IDIOMA -->
+            <form action="{% url 'set_language' %}" method="post" class="inline-flex items-center flex-shrink-0">
+                {% csrf_token %}
+                <input name="next" type="hidden" value="{{ request.get_full_path }}">
+                <div class="relative inline-flex items-center bg-slate-100 rounded-xl p-0.5 sm:p-1 border border-slate-200">
+                    {% get_current_language as CURRENT_LANGUAGE %}
+                    <button type="submit" name="language" value="es"
+                            class="px-2 py-0.5 sm:py-1 text-[11px] sm:text-xs font-bold rounded-lg transition {% if CURRENT_LANGUAGE == 'es' %}bg-white text-slate-900 shadow-sm{% else %}text-slate-500 hover:text-slate-900{% endif %}">
+                        🇵🇪 ES
+                    </button>
+                    <button type="submit" name="language" value="en"
+                            class="px-2 py-0.5 sm:py-1 text-[11px] sm:text-xs font-bold rounded-lg transition {% if CURRENT_LANGUAGE == 'en' %}bg-white text-slate-900 shadow-sm{% else %}text-slate-500 hover:text-slate-900{% endif %}">
+                        🇺🇸 EN
+                    </button>
+                </div>
+            </form>
+
+            <!-- ENLACES DE USUARIO / ACCIONES -->
+            <div class="flex items-center gap-1 sm:gap-1.5 flex-nowrap flex-shrink-0">
+                {% if user.is_authenticated %}
+                 {% if user.is_staff %}
+  <a href="{% url 'dashboard_municipal' %}" 
+     class="btn btn-xs sm:btn-sm btn-ghost font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl whitespace-nowrap px-2.5">
+      <i class="fa-solid fa-chart-pie text-xs"></i> 
+      <span class="hidden xs:inline">{% trans "Panel Gestor" %}</span>
+  </a>
+{% endif %}
+                  
+                  <a href="{% url 'perfil' %}" 
+                     class="btn btn-xs sm:btn-sm btn-ghost font-medium text-blue-800 hover:bg-blue-50 rounded-xl whitespace-nowrap px-2.5">
+                    <i class="fa-regular fa-circle-user text-sm sm:text-base"></i> 
+                    <span class="hidden sm:inline">{% trans "Mi Perfil" %}</span>
+                    <span class="sm:hidden font-bold">({{ user.username|make_list|first|upper }})</span>
+                  </a>
+
+                  <form method="POST" action="{% url 'logout' %}" class="inline-flex">
+                      {% csrf_token %}
+                      <button type="submit" 
+                              class="btn btn-xs sm:btn-sm btn-ghost text-red-600 hover:bg-red-50 hover:text-red-700 rounded-xl px-2"
+                              title="{% trans 'Salir' %}">
+                        <i class="fa-solid fa-right-from-bracket text-xs sm:text-sm"></i>
+                      </button>
+                  </form>
+                {% else %}
+                  <a href="{% url 'login' %}" 
+                     class="btn btn-xs sm:btn-sm btn-ghost text-slate-600 font-semibold hover:text-blue-700 rounded-xl whitespace-nowrap">
+                    {% trans "Ingresar" %}
+                  </a>
+                  <a href="{% url 'registro' %}" 
+                     class="btn btn-xs sm:btn-sm btn-primary bg-blue-600 border-none text-white hover:bg-blue-700 rounded-xl shadow-sm whitespace-nowrap px-3">
+                    {% trans "Registrarse" %}
+                  </a>
                 {% endif %}
-                  <li>
-                    <a href="{% url 'perfil' %}" class="btn btn-sm btn-ghost font-medium text-blue-800 hover:bg-blue-50">
-                      <i class="fa-regular fa-circle-user text-base"></i> Mi Perfil ({{ user.username }})
-                    </a>
-                  </li>
-                  <li>
-                      <form method="POST" action="{% url 'logout' %}" class="inline">
-                          {% csrf_token %}
-                          <button type="submit" class="btn btn-sm btn-ghost text-red-600 hover:bg-red-50 hover:text-red-700">
-                            <i class="fa-solid fa-right-from-bracket text-xs"></i> Salir
-                          </button>
-                      </form>
-                  </li>
-              {% else %}
-                  <li>
-                    <a href="{% url 'login' %}" class="text-slate-600 font-medium hover:text-blue-700">Ingresar</a>
-                  </li>
-                  <li>
-                    <a href="{% url 'registro' %}" class="btn btn-sm btn-primary bg-blue-600 border-none text-white hover:bg-blue-700 shadow-sm">
-                      Registrarse
-                    </a>
-                  </li>
-              {% endif %}
-              
-          </ul>
+            </div>
+
+          </div>
         </div>
       </div>
     </header>
 
-    <!-- CONTENIDO PRINCIPAL -->
-    <main class="flex-grow">
+    <!-- CONTENIDO PRINCIPAL (Blindado contra desbordes) -->
+    <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 overflow-x-hidden">
         {% block content %}
         {% endblock %}
     </main>
 
     <!-- FOOTER LIGERO -->
-    <footer class="bg-slate-900 text-slate-400 py-8 border-t border-slate-800 mt-16">
-      <div class="max-w-7xl mx-auto px-4 text-center text-sm">
-        <p>© {% now "Y" %} Explora Pucusana — Sistema Inteligente de Promoción Turística.</p>
+    <footer class="w-full bg-slate-900 text-slate-400 py-8 border-t border-slate-800 mt-16">
+      <div class="max-w-7xl mx-auto px-4 text-center text-xs sm:text-sm">
+        <p>© {% now "Y" %} {% trans "Explora Pucusana — Sistema Inteligente de Promoción Turística." %}</p>
       </div>
     </footer>
 
@@ -105,14 +144,14 @@
         <div class="flex items-center gap-3">
           <span class="text-3xl">🤖</span>
           <div>
-              <h3 class="font-bold text-sm sm:text-base">¡Ayuda a nuestra IA!</h3>
-              <p class="text-xs text-blue-200">Completa tus intereses para recibir recomendaciones turísticas personalizadas.</p>
+              <h3 class="font-bold text-sm sm:text-base">{% trans "¡Ayuda a nuestra IA!" %}</h3>
+              <p class="text-xs text-blue-200">{% trans "Completa tus intereses para recibir recomendaciones turísticas personalizadas." %}</p>
           </div>
         </div>
         
         <div class="flex-none w-full sm:w-auto">
           <a href="{% url 'perfil' %}" class="btn btn-xs sm:btn-sm btn-primary bg-blue-500 border-none text-white hover:bg-blue-400 w-full shadow-md">
-            Llenar mis datos 🚀
+            {% trans "Llenar mis datos" %} 🚀
           </a>
         </div>
         
@@ -123,14 +162,13 @@
     <!-- SCRIPTS BASE -->
     <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // Desvanecimiento suave de alertas/toasts
         const toast = document.getElementById('toast-alerta');
         if (toast) {
             setTimeout(function() {
                 toast.style.opacity = "0";
                 toast.style.transform = "translateY(20px)";
                 setTimeout(() => toast.remove(), 500); 
-            }, 5000); // 5 segundos para que dé tiempo de leer
+            }, 5000);
         }
     });
     </script>

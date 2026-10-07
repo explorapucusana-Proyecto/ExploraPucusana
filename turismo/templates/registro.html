@@ -1,4 +1,7 @@
 {% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Registro" %} — {% trans "Explora Pucusana" %}{% endblock %}
 
 {% block content %}
 <!-- Bloque para recibir alertas de error o éxito del Backend (views.py) -->
@@ -33,10 +36,10 @@
         
         <div class="text-center">
             <h2 class="mt-6 text-3xl font-extrabold text-blue-900">
-                Únete a Explora Pucusana
+                {% trans "Únete a Explora Pucusana" %}
             </h2>
             <p class="mt-2 text-sm text-gray-600">
-                Crea tu cuenta para guardar lugares, dejar reseñas y recibir recomendaciones inteligentes.
+                {% trans "Crea tu cuenta para guardar lugares, dejar reseñas y recibir recomendaciones inteligentes." %}
             </p>
         </div>
 
@@ -81,13 +84,12 @@
                                 <li>⚠️ {{ error }}</li>
                             {% endfor %}
                         {% endfor %}
-                        
                     </ul>
                 {% endif %}
 
                 <!-- Campo de Nombre de Usuario -->
                 <div>
-                    <label for="{{ form.username.id_for_label }}">Nombre de usuario:</label>
+                    <label for="{{ form.username.id_for_label }}">{% trans "Nombre de usuario:" %}</label>
                     {{ form.username }}
                     {% if form.username.help_text %}
                         <span class="helptext">{{ form.username.help_text }}</span>
@@ -96,15 +98,15 @@
 
                 <!-- Campo de Email Validado Estrictamente -->
                 <div>
-                    <label for="id_email">Correo electrónico:</label>
+                    <label for="id_email">{% trans "Correo electrónico:" %}</label>
                     <input type="email" name="email" id="id_email" placeholder="ejemplo@correo.com" required 
                            value="{{ request.POST.email|default:'' }}">
-                    <span class="helptext">Requerido para la verificación y seguridad de tu cuenta de turista.</span>
+                    <span class="helptext">{% trans "Requerido para la verificación y seguridad de tu cuenta de turista." %}</span>
                 </div>
 
                 <!-- Campo de Contraseña 1 -->
                 <div>
-                    <label for="{{ form.password1.id_for_label }}">Contraseña:</label>
+                    <label for="{{ form.password1.id_for_label }}">{% trans "Contraseña:" %}</label>
                     {{ form.password1 }}
                     {% if form.password1.help_text %}
                         <span class="helptext">{{ form.password1.help_text }}</span>
@@ -113,20 +115,20 @@
 
                 <!-- Campo de Contraseña 2 -->
                 <div>
-                    <label for="{{ form.password2.id_for_label }}">Confirmación de contraseña:</label>
+                    <label for="{{ form.password2.id_for_label }}">{% trans "Confirmación de contraseña:" %}</label>
                     {{ form.password2 }}
                 </div>
             </div>
 
             <div>
                 <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
-                    Crear Cuenta Turista 🎒
+                    {% trans "Crear Cuenta Turista" %} 🎒
                 </button>
             </div>
             
             <div class="text-sm text-center mt-4">
                 <a href="{% url 'login' %}" class="font-medium text-blue-600 hover:text-blue-500">
-                    ¿Ya tienes cuenta? Inicia sesión aquí
+                    {% trans "¿Ya tienes cuenta? Inicia sesión aquí" %}
                 </a>
             </div>
         </form>

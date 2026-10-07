@@ -1,4 +1,7 @@
 {% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Bienvenido" %} — {% trans "Explora Pucusana" %}{% endblock %}
 
 {% block content %}
 <div class="hero min-h-[80vh] rounded-3xl overflow-hidden shadow-2xl mt-4 relative" style="background-image: url('https://images.unsplash.com/photo-1596401057633-54a8fe8ef647?q=80&w=2000&auto=format&fit=crop');">
@@ -6,20 +9,34 @@
   
   <div class="hero-content text-center text-neutral-content z-10">
     <div class="max-w-2xl">
-      <h1 class="mb-5 text-5xl font-bold text-white drop-shadow-lg">Descubre la Magia de Pucusana 🌊</h1>
-      <p class="mb-8 text-xl text-gray-200">Explora playas escondidas, la mejor gastronomía marina y atardeceres inolvidables. Únete a nuestra comunidad de viajeros.</p>
+      <h1 class="mb-5 text-5xl font-bold text-white drop-shadow-lg">
+        {% trans "Descubre la Magia de Pucusana" %} 🌊
+      </h1>
+      <p class="mb-8 text-xl text-gray-200">
+        {% trans "Explora playas escondidas, la mejor gastronomía marina y atardeceres inolvidables. Únete a nuestra comunidad de viajeros." %}
+      </p>
       
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href="{% url 'registro' %}" class="btn btn-primary bg-blue-600 hover:bg-blue-700 border-none text-lg px-8">Crear mi cuenta</a>
-        <a href="{% url 'login' %}" class="btn btn-outline text-white hover:bg-white hover:text-blue-900 text-lg px-8">Ya tengo cuenta</a>
+        <a href="{% url 'registro' %}" class="btn btn-primary bg-blue-600 hover:bg-blue-700 border-none text-lg px-8">
+          {% trans "Crear mi cuenta" %}
+        </a>
+        <a href="{% url 'login' %}" class="btn btn-outline text-white hover:bg-white hover:text-blue-900 text-lg px-8">
+          {% trans "Ya tengo cuenta" %}
+        </a>
       </div>
     </div>
   </div>
 </div>
 
 <div class="mt-12 mb-8 bg-gray-50 border border-gray-200 rounded-xl p-6 text-center shadow-sm">
-    <h3 class="text-gray-600 font-semibold mb-2">¿Eres parte del equipo municipal?</h3>
-    <p class="text-sm text-gray-500 mb-4">Accede al panel de control para administrar el catálogo de atractivos y ver estadísticas.</p>
-    <a href="/admin/" class="btn btn-sm btn-ghost text-blue-700 hover:bg-blue-100 border border-blue-200">Ingresar como Funcionario 🏢</a>
+    <h3 class="text-gray-600 font-semibold mb-2">
+      {% trans "¿Eres parte del equipo municipal?" %}
+    </h3>
+    <p class="text-sm text-gray-500 mb-4">
+      {% trans "Accede al panel de control para administrar el catálogo de atractivos y ver estadísticas." %}
+    </p>
+    <a href="/admin/" class="btn btn-sm btn-ghost text-blue-700 hover:bg-blue-100 border border-blue-200">
+      {% trans "Ingresar como Funcionario" %} 🏢
+    </a>
 </div>
 {% endblock %}

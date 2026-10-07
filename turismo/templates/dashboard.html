@@ -1,66 +1,431 @@
 {% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Panel Estratégico Municipal" %} — {% trans "Explora Pucusana" %}{% endblock %}
 
 {% block content %}
-<div class="container mx-auto mt-8 p-4">
-    
-    <div class="mb-8 border-b pb-4">
-        <h2 class="text-3xl font-bold text-blue-900">Dashboard Municipal 📊</h2>
-        <p class="text-gray-600">Indicadores descriptivos en tiempo real para la gestión turística.</p>
-    </div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        
-        <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-            <h3 class="font-bold text-gray-700 mb-4 text-center">Distribución de Atractivos por Categoría</h3>
-            <canvas id="graficoCategorias"></canvas>
-        </div>
+<div class="min-h-screen bg-slate-50/60 pb-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-10">
 
-        <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-            <h3 class="font-bold text-gray-700 mb-4 text-center">Top 5: Lugares Mejor Calificados</h3>
-            <canvas id="graficoTopLugares"></canvas>
-        </div>
+        <!-- CABECERA PRINCIPAL CON ACCIONES -->
+        <header class="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div class="space-y-2">
+                <div class="flex items-center gap-3">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-100 text-blue-800">
+                        {% trans "Nivel Estratégico" %}
+                    </span>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800">
+                        🟢 {% trans "Telemetría Activa" %}
+                    </span>
+                </div>
+                <h1 class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+                    {% trans "Panel Estratégico Municipal" %}
+                </h1>
+                <p class="text-slate-500 text-sm sm:text-base max-w-2xl leading-relaxed">
+                    {% trans "Subgerencia de Turismo de Pucusana · Business Analytics aplicado a la afluencia física verificada, satisfacción ciudadana y proyecciones de demanda." %}
+                </p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <a href="/admin/turismo/lugar/" target="_blank"
+                   class="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs sm:text-sm px-5 py-3 rounded-2xl shadow transition transform active:scale-95">
+                    <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span>{% trans "Gestión de Atractivos (Admin)" %}</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- SECCIÓN 1: KPIS DESCRIPTIVOS DE CABECERA -->
+        <section class="space-y-4">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 px-1">
+                {% trans "Métricas Consolidadas de la Operación Turística" %}
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- KPI 1 -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80 hover:border-slate-300 transition">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500">{% trans "Total Atractivos" %}</span>
+                        <span class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">📍</span>
+                    </div>
+                    <div class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">{{ total_lugares|default:0 }}</div>
+                    <p class="text-xs text-slate-400 mt-2">{% trans "Catálogo registrado en el balneario" %}</p>
+                </div>
+
+                <!-- KPI 2 -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80 hover:border-emerald-200 transition">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500">{% trans "Afluencia Física" %}</span>
+                        <span class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">🧭</span>
+                    </div>
+                    <div id="kpiVisitas" class="text-3xl sm:text-4xl font-black text-emerald-600 tracking-tight">{{ total_visitas|default:0 }}</div>
+                    <p class="text-xs text-emerald-600 font-medium mt-2">{% trans "Certificadas por GPS pasivo (Haversine)" %}</p>
+                </div>
+
+                <!-- KPI 3 -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80 hover:border-indigo-200 transition">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500">{% trans "Feedback Turístico" %}</span>
+                        <span class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm">💬</span>
+                    </div>
+                    <div id="kpiResenas" class="text-3xl sm:text-4xl font-black text-indigo-600 tracking-tight">{{ total_resenas|default:0 }}</div>
+                    <p class="text-xs text-slate-400 mt-2">{% trans "Reseñas y opiniones ciudadanas" %}</p>
+                </div>
+
+                <!-- KPI 4 -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80 hover:border-amber-200 transition">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500">{% trans "Satisfacción Global" %}</span>
+                        <span class="w-8 h-8 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center font-bold text-sm">⭐</span>
+                    </div>
+                    <div id="kpiRating" class="text-3xl sm:text-4xl font-black text-amber-500 tracking-tight">{{ promedio_gral|default:"0.0" }} ★</div>
+                    <p class="text-xs text-slate-400 mt-2">{% trans "Puntuación media del balneario (1 - 5)" %}</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 2: ANALÍTICA DESCRIPTIVA (NIVEL 1) -->
+        <section class="space-y-6">
+            <div>
+                <h2 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{% trans "Nivel 1: Diagnóstico Descriptivo" %}</h2>
+                <p class="text-slate-500 text-sm">{% trans "Distribución de oferta territorial, respuesta del público y ranking de destinos más visitados." %}</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- Gráfico de Torta (Categorías) -->
+                <div class="lg:col-span-5 bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200/80 flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-extrabold text-slate-800 text-base sm:text-lg">{% trans "Oferta por Categoría" %}</h3>
+                        <p class="text-xs text-slate-400 mt-1 mb-6">{% trans "Proporción de atractivos registrados en Pucusana" %}</p>
+                    </div>
+                    <div class="relative h-72 w-full flex items-center justify-center">
+                        <canvas id="graficoCategoriasTorta"></canvas>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-100 text-center">
+                        <span class="text-xs text-slate-400">{% trans "Datos sincronizados con catálogo municipal" %}</span>
+                    </div>
+                </div>
+
+                <!-- Gráfico de Barras (Histograma de Calificaciones) -->
+                <div class="lg:col-span-7 bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200/80 flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-extrabold text-slate-800 text-base sm:text-lg">{% trans "Distribución de Calificaciones" %}</h3>
+                        <p class="text-xs text-slate-400 mt-1 mb-6">{% trans "Frecuencia de puntuaciones asignadas por los usuarios (1★ a 5★)" %}</p>
+                    </div>
+                    <div class="relative h-72 w-full">
+                        <canvas id="chartSatisfaccion"></canvas>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500">
+                        <span>{% trans "Índice de Calidad Percibida" %}</span>
+                        <span id="kpiISN" class="font-bold text-blue-600">--% {% trans "Satisfacción" %}</span>
+                    </div>
+                </div>
+
+                <!-- Gráfico Mixto: Top 5 de Atractivos Concurridos -->
+                <div class="lg:col-span-12 bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200/80">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
+                        <div>
+                            <h3 class="font-extrabold text-slate-800 text-base sm:text-lg">{% trans "Top Atractivos: Visitas Físicas vs. Calidad" %}</h3>
+                            <p class="text-xs text-slate-400 mt-1">{% trans "Comparativa entre afluencia real presencial y el rating promedio obtenido" %}</p>
+                        </div>
+                        <span class="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-full self-start sm:self-auto">
+                            {% trans "Eje Dual (Visitas + Estrellas)" %}
+                        </span>
+                    </div>
+                    <div class="relative h-80 w-full">
+                        <canvas id="chartTop"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 3: ANALÍTICA PREDICTIVA Y PRESCRIPTIVA (NIVEL 2 Y 3) -->
+        <section class="space-y-6 pt-6 border-t border-slate-200">
+            <div>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-purple-100 text-purple-800 mb-2">
+                    {% trans "Inferencia Batch Semanal (Random Forest)" %}
+                </span>
+                <h2 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                    {% trans "Nivel 2 y 3: Proyecciones y Acciones Prescriptivas" %}
+                </h2>
+                <p class="text-slate-500 text-sm">
+                    {% trans "Anticipación de la demanda turística para los próximos 7 días y sugerencias operativas territoriales automatizadas." %}
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- Gráfico de Tendencia Proyectada -->
+                <div class="lg:col-span-7 bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200/80 flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-extrabold text-slate-800 text-base sm:text-lg">{% trans "Curva de Afluencia Estimada (7 Días)" %}</h3>
+                        <p class="text-xs text-slate-400 mt-1 mb-6">{% trans "Proyección temporal considerando fines de semana y estacionalidad" %}</p>
+                    </div>
+                    <div class="relative h-72 w-full">
+                        <canvas id="chartTendenciaPredictiva"></canvas>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+                        <span>{% trans "Modelo: Random Forest Regressor" %}</span>
+                        <span class="text-purple-600 font-semibold">{% trans "Inferencia Batch" %}</span>
+                    </div>
+                </div>
+
+                <!-- Tarjetas de Acciones Prescriptivas Municipales -->
+                <div class="lg:col-span-5 bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200/80 flex flex-col">
+                    <div class="mb-4">
+                        <h3 class="font-extrabold text-slate-800 text-base sm:text-lg">{% trans "Recomendaciones Operativas" %}</h3>
+                        <p class="text-xs text-slate-400 mt-1">{% trans "Intervenciones sugeridas según cruce de demanda y calificación" %}</p>
+                    </div>
+                    <div id="contenedorPrescripciones" class="space-y-3.5 overflow-y-auto max-h-[300px] pr-2">
+                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center text-xs text-slate-400 animate-pulse">
+                            {% trans "Cargando sugerencias de la IA..." %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+<!-- SCRIPTS DE RENDERIZADO VISUAL CON CHART.JS -->
 <script>
-    // GRAFICO 1: Dona (Categorías)
-    // Usamos la etiqueta "safe" para que Django convierta las listas de Python a arreglos de JavaScript
-    const ctxCategorias = document.getElementById('graficoCategorias').getContext('2d');
-    new Chart(ctxCategorias, {
-        type: 'doughnut',
-        data: {
-            labels: {{ nombres_categorias|safe }},
-            datasets: [{
-                data: {{ totales_categorias|safe }},
-                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
-                borderWidth: 1
-            }]
-        },
-        options: { responsive: true }
-    });
+document.addEventListener("DOMContentLoaded", function () {
+    Chart.defaults.font.family = 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+    Chart.defaults.color = '#64748b';
 
-    // GRAFICO 2: Barras (Calificaciones)
-    const ctxTopLugares = document.getElementById('graficoTopLugares').getContext('2d');
-    new Chart(ctxTopLugares, {
-        type: 'bar',
-        data: {
-            labels: {{ nombres_lugares|safe }},
-            datasets: [{
-                label: 'Calificación Promedio (Estrellas)',
-                data: {{ promedios_lugares|safe }},
-                backgroundColor: '#3b82f6',
-                borderRadius: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: { beginAtZero: true, max: 5 } // Las estrellas van del 0 al 5
+    // Traducciones integradas para gráficos y leyendas
+    const strResenas = "{% trans 'Cantidad de Reseñas' %}";
+    const strVisitasReales = "{% trans 'Visitas Físicas Confirmadas' %}";
+    const strCalifProm = "{% trans 'Calificación Promedio (★)' %}";
+    const strVisitasEje = "{% trans 'Visitas Reales' %}";
+    const strCalifEje = "{% trans 'Calificación (1 - 5)' %}";
+    const strAfluenciaEst = "{% trans 'Afluencia Estimada' %}";
+    const strPersonasProy = "{% trans 'Personas Proyectadas' %}";
+    const strSatisfaccionNeta = "{% trans 'Satisfacción Neta' %}";
+    const strSinAlertas = "{% trans 'Operación regular sin alertas críticas para el período evaluado.' %}";
+    const strDemanda = "{% trans 'Demanda' %}";
+    const strFecha = "{% trans 'Fecha' %}";
+    const strEstimado = "{% trans 'Estimado' %}";
+    const strVisitantes = "{% trans 'visitantes' %}";
+
+    // 1. Gráfico de Torta Nativo (Categorías de Atractivos)
+    const ctxTorta = document.getElementById('graficoCategoriasTorta');
+    if (ctxTorta) {
+        new Chart(ctxTorta, {
+            type: 'doughnut',
+            data: {
+                labels: {{ nombres_categorias|safe }},
+                datasets: [{
+                    data: {{ totales_categorias|safe }},
+                    backgroundColor: [
+                        '#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b'
+                    ],
+                    borderWidth: 3,
+                    borderColor: '#ffffff',
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { boxWidth: 12, padding: 15, font: { size: 11, weight: '600' } }
+                    }
+                },
+                cutout: '68%'
             }
-        }
-    });
+        });
+    }
+
+    // 2. Carga Asíncrona de Métricas Descriptivas (HU11)
+    fetch("{% url 'api_analytics_descriptivo' %}")
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                if (data.kpis) {
+                    const elVisitas = document.getElementById('kpiVisitas');
+                    const elResenas = document.getElementById('kpiResenas');
+                    const elRating = document.getElementById('kpiRating');
+                    const elISN = document.getElementById('kpiISN');
+
+                    if (elVisitas) elVisitas.innerText = data.kpis.total_visitas_fisicas;
+                    if (elResenas) elResenas.innerText = data.kpis.total_resenas;
+                    if (elRating) elRating.innerText = data.kpis.calificacion_promedio + ' ★';
+                    if (elISN) elISN.innerText = data.kpis.indice_satisfaccion + '% ' + strSatisfaccionNeta;
+                }
+
+                // Gráfico de Barras: Calificaciones por Estrellas
+                const ctxSat = document.getElementById('chartSatisfaccion');
+                if (ctxSat) {
+                    new Chart(ctxSat, {
+                        type: 'bar',
+                        data: {
+                            labels: data.grafico_satisfaccion.labels,
+                            datasets: [{
+                                label: strResenas,
+                                data: data.grafico_satisfaccion.series,
+                                backgroundColor: '#f59e0b',
+                                borderRadius: 10,
+                                barThickness: 28
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { color: '#f1f5f9' },
+                                    ticks: { precision: 0 }
+                                },
+                                x: { grid: { display: false } }
+                            }
+                        }
+                    });
+                }
+
+                // Gráfico Mixto: Top Atractivos
+                const ctxTop = document.getElementById('chartTop');
+                if (ctxTop) {
+                    new Chart(ctxTop, {
+                        type: 'bar',
+                        data: {
+                            labels: data.grafico_top_atractivos.labels,
+                            datasets: [
+                                {
+                                    label: strVisitasReales,
+                                    data: data.grafico_top_atractivos.visitas,
+                                    backgroundColor: '#2563eb',
+                                    borderRadius: 10,
+                                    barThickness: 34,
+                                    yAxisID: 'y'
+                                },
+                                {
+                                    label: strCalifProm,
+                                    data: data.grafico_top_atractivos.ratings,
+                                    type: 'line',
+                                    borderColor: '#e11d48',
+                                    backgroundColor: '#e11d48',
+                                    pointBackgroundColor: '#e11d48',
+                                    pointRadius: 6,
+                                    tension: 0.35,
+                                    yAxisID: 'y1'
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: { mode: 'index', intersect: false },
+                            plugins: {
+                                legend: { position: 'bottom', labels: { boxWidth: 12, padding: 15 } }
+                            },
+                            scales: {
+                                y: {
+                                    type: 'linear',
+                                    position: 'left',
+                                    beginAtZero: true,
+                                    grid: { color: '#f1f5f9' },
+                                    ticks: { precision: 0 },
+                                    title: { display: true, text: strVisitasEje, font: { size: 11, weight: 'bold' } }
+                                },
+                                y1: {
+                                    type: 'linear',
+                                    position: 'right',
+                                    min: 0,
+                                    max: 5,
+                                    grid: { drawOnChartArea: false },
+                                    title: { display: true, text: strCalifEje, font: { size: 11, weight: 'bold' } }
+                                },
+                                x: { grid: { display: false } }
+                            }
+                        }
+                    });
+                }
+            }
+        })
+        .catch(err => console.error("Error al cargar analítica descriptiva:", err));
+
+    // 3. Carga Asíncrona de Módulo Predictivo y Prescriptivo (HU12)
+    fetch("{% url 'api_analytics_predictivo' %}")
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                const ctxPred = document.getElementById('chartTendenciaPredictiva');
+                if (ctxPred) {
+                    new Chart(ctxPred, {
+                        type: 'line',
+                        data: {
+                            labels: data.grafico_tendencia.fechas,
+                            datasets: [{
+                                label: strAfluenciaEst,
+                                data: data.grafico_tendencia.afluencia_total,
+                                borderColor: '#7c3aed',
+                                backgroundColor: 'rgba(124, 58, 237, 0.08)',
+                                fill: true,
+                                tension: 0.4,
+                                pointBackgroundColor: '#7c3aed',
+                                pointBorderColor: '#ffffff',
+                                pointBorderWidth: 2,
+                                pointRadius: 5,
+                                pointHoverRadius: 7
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { color: '#f1f5f9' },
+                                    ticks: { precision: 0 },
+                                    title: { display: true, text: strPersonasProy, font: { size: 11, weight: 'bold' } }
+                                },
+                                x: { grid: { display: false } }
+                            }
+                        }
+                    });
+                }
+
+                // Renderizado de Prescripciones
+                const cont = document.getElementById('contenedorPrescripciones');
+                if (cont) {
+                    if (data.alertas_prescriptivas.length === 0) {
+                        cont.innerHTML = `<div class="p-4 rounded-2xl bg-slate-50 text-slate-400 text-xs text-center">${strSinAlertas}</div>`;
+                    } else {
+                        cont.innerHTML = data.alertas_prescriptivas.map(item => `
+                            <div class="p-4 rounded-2xl border transition ${
+                                item.demanda === 'Alta' 
+                                    ? 'bg-red-50/70 border-red-200 text-red-950' 
+                                    : 'bg-blue-50/70 border-blue-200 text-blue-950'
+                            }">
+                                <div class="flex items-center justify-between gap-2 mb-1.5">
+                                    <h4 class="font-black text-xs tracking-tight">${item.lugar}</h4>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                        item.demanda === 'Alta' ? 'bg-red-200 text-red-900' : 'bg-blue-200 text-blue-900'
+                                    }">
+                                        ${strDemanda} ${item.demanda}
+                                    </span>
+                                </div>
+                                <p class="text-xs leading-relaxed opacity-90">${item.accion}</p>
+                                <div class="mt-2 pt-2 border-t border-black/5 flex justify-between text-[11px] opacity-75 font-semibold">
+                                    <span>${strFecha}: ${item.fecha}</span>
+                                    <span>${strEstimado}: ${item.afluencia} ${strVisitantes}</span>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                }
+            }
+        })
+        .catch(err => console.error("Error al cargar módulo predictivo/prescriptivo:", err));
+});
 </script>
 {% endblock %}

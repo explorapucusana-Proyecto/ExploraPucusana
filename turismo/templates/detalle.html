@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}{{ lugar.nombre }} — Explora Pucusana{% endblock %}
+{% block title %}{{ lugar.nombre }} — {% trans "Explora Pucusana" %}{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-8">
@@ -8,7 +9,7 @@
     <!-- NAVEGACIÓN DE RETORNO -->
     <div class="mb-6">
         <a href="{% url 'index' %}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-blue-600 transition">
-            <i class="fa-solid fa-arrow-left text-xs"></i> Volver al catálogo
+            <i class="fa-solid fa-arrow-left text-xs"></i> {% trans "Volver al catálogo" %}
         </a>
     </div>
 
@@ -21,7 +22,7 @@
                 {% if lugar.imagen %}
                     <img src="{{ lugar.imagen.url }}" alt="{{ lugar.nombre }}" class="w-full h-full object-cover" />
                 {% else %}
-                    <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80" alt="Sin imagen" class="w-full h-full object-cover" />
+                    <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80" alt="{% trans 'Sin imagen' %}" class="w-full h-full object-cover" />
                 {% endif %}
 
                 {% if lugar.categoria %}
@@ -49,9 +50,9 @@
                                 <i class="fa-solid fa-ticket"></i>
                             </div>
                             <div>
-                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Costo de Ingreso</span>
+                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">{% trans "Costo de Ingreso" %}</span>
                                 <span class="text-lg font-extrabold text-emerald-600">
-                                    {% if lugar.precio == 0 %} ¡Gratis! {% else %} S/ {{ lugar.precio }} {% endif %}
+                                    {% if lugar.precio == 0 %} {% trans "¡Gratis!" %} {% else %} S/ {{ lugar.precio }} {% endif %}
                                 </span>
                             </div>
                         </div>
@@ -61,9 +62,9 @@
                                 <i class="fa-solid fa-location-dot"></i>
                             </div>
                             <div>
-                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Dirección</span>
+                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">{% trans "Dirección" %}</span>
                                 <span class="text-sm font-bold text-slate-800 line-clamp-1">
-                                    {{ lugar.direccion|default:"Pucusana, Perú" }}
+                                    {{ lugar.direccion|default:_("Pucusana, Perú") }}
                                 </span>
                             </div>
                         </div>
@@ -77,20 +78,20 @@
                         <a href="https://www.google.com/maps/dir/?api=1&destination={{ lugar.latitud|stringformat:'f' }},{{ lugar.longitud|stringformat:'f' }}" 
                            target="_blank" 
                            class="btn bg-emerald-600 hover:bg-emerald-700 text-white border-none rounded-xl font-bold shadow-lg shadow-emerald-600/20 gap-2 text-sm">
-                           <i class="fa-solid fa-diamond-turn-right"></i> Cómo llegar
+                           <i class="fa-solid fa-diamond-turn-right"></i> {% trans "Cómo llegar" %}
                         </a>
                         {% endif %}
 
                         <a href="#seccion-resenas" class="btn btn-outline border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl font-semibold text-sm gap-2">
-                            <i class="fa-regular fa-star"></i> Ver Reseñas
+                            <i class="fa-regular fa-star"></i> {% trans "Ver Reseñas" %}
                         </a>
                     </div>
 
                     <!-- BOTONES PARA COMPARTIR (HU09) -->
                     <div class="mt-6 pt-6 border-t border-slate-100 flex flex-wrap items-center gap-2">
-                        <span class="text-xs font-semibold text-slate-400 uppercase mr-2">Compartir:</span>
-    
-                        <a href="https://api.whatsapp.com/send?text=¡Mira este increíble lugar en Pucusana! Te invito a visitarlo: {{ request.build_absolute_uri }}" 
+                        <span class="text-xs font-semibold text-slate-400 uppercase mr-2">{% trans "Compartir:" %}</span>
+
+                        <a href="https://api.whatsapp.com/send?text={% filter urlencode %}{% trans '¡Mira este increíble lugar en Pucusana! Te invito a visitarlo:' %} {{ request.build_absolute_uri }}{% endfilter %}" 
                            target="_blank" 
                            onclick="registrarCompartido({{ lugar.id }})"
                            class="btn btn-xs bg-[#25D366] hover:bg-[#128C7E] text-white border-none rounded-lg gap-1.5">
@@ -106,7 +107,7 @@
 
                         <button onclick="copiarEnlace({{ lugar.id }})" 
                                 class="btn btn-xs btn-ghost text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg gap-1.5">
-                            <i class="fa-solid fa-link text-xs"></i> Copiar enlace
+                            <i class="fa-solid fa-link text-xs"></i> {% trans "Copiar enlace" %}
                         </button>
                     </div>
                 </div>
@@ -119,54 +120,57 @@
     {% if lugar.latitud and lugar.longitud %}
     <div class="bg-white p-6 rounded-3xl shadow-lg border border-slate-100 mb-12">
         <h3 class="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-map-pin text-blue-600"></i> Ubicación en el Mapa
+            <i class="fa-solid fa-map-pin text-blue-600"></i> {% trans "Ubicación en el Mapa" %}
         </h3>
         <div id="mapa" class="h-80 w-full rounded-2xl border border-slate-200 z-10"></div>
     </div>
     {% else %}
     <div class="bg-slate-100 p-6 rounded-2xl text-center border border-dashed border-slate-200 mb-12">
-        <p class="text-slate-500 text-sm">🗺️ Las coordenadas de este atractivo aún no están registradas en el sistema.</p>
+        <p class="text-slate-500 text-sm">🗺️ {% trans "Las coordenadas de este atractivo aún no están registradas en el sistema." %}</p>
     </div>
     {% endif %}
 
     <!-- SECCIÓN COMENTARIOS Y RESEÑAS -->
     <div id="seccion-resenas" class="bg-white p-6 sm:p-8 rounded-3xl shadow-lg border border-slate-100">
         <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-            <i class="fa-solid fa-comments text-blue-600"></i> Comentarios y Opiniones
+            <i class="fa-solid fa-comments text-blue-600"></i> {% trans "Comentarios y Opiniones" %}
         </h3>
 
         <!-- FORMULARIO DE NUEVA RESEÑA -->
         {% if user.is_authenticated %}
         <form method="POST" class="bg-slate-50 p-6 rounded-2xl border border-slate-200/80 mb-10">
             {% csrf_token %}
-            <h4 class="font-bold text-slate-800 text-base mb-4">Escribe tu opinión, {{ user.username }}:</h4>
+            <h4 class="font-bold text-slate-800 text-base mb-4">{% trans "Escribe tu opinión," %} {{ user.username }}:</h4>
             
             <div class="mb-4 max-w-xs">
-                <label class="block text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Calificación</label>
+                <label class="block text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">{% trans "Calificación" %}</label>
                 <select name="calificacion" class="select select-bordered w-full border-slate-300 rounded-xl text-sm" required>
-                    <option value="5">⭐⭐⭐⭐⭐ (Excelente)</option>
-                    <option value="4">⭐⭐⭐⭐ (Muy Bueno)</option>
-                    <option value="3">⭐⭐⭐ (Bueno)</option>
-                    <option value="2">⭐⭐ (Regular)</option>
-                    <option value="1">⭐ (Malo)</option>
+                    <option value="5">⭐⭐⭐⭐⭐ ({% trans "Excelente" %})</option>
+                    <option value="4">⭐⭐⭐⭐ ({% trans "Muy Bueno" %})</option>
+                    <option value="3">⭐⭐⭐ ({% trans "Bueno" %})</option>
+                    <option value="2">⭐⭐ ({% trans "Regular" %})</option>
+                    <option value="1">⭐ ({% trans "Malo" %})</option>
                 </select>
             </div>
             
             <div class="mb-4">
-                <label class="block text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Tu Comentario</label>
-                <textarea name="comentario" rows="3" class="textarea textarea-bordered w-full border-slate-300 rounded-xl text-sm" placeholder="¿Qué tal estuvo tu experiencia en este lugar?..." required></textarea>
+                <label class="block text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">{% trans "Tu Comentario" %}</label>
+                <textarea name="comentario" rows="3" class="textarea textarea-bordered w-full border-slate-300 rounded-xl text-sm" placeholder="{% trans '¿Qué tal estuvo tu experiencia en este lugar?...' %}" required></textarea>
             </div>
             
             <button type="submit" class="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white border-none rounded-xl px-6 gap-2">
-                <i class="fa-solid fa-paper-plane text-xs"></i> Publicar Reseña
+                <i class="fa-solid fa-paper-plane text-xs"></i> {% trans "Publicar Reseña" %}
             </button>
         </form>
         {% else %}
         <div class="bg-blue-50 border border-blue-100 p-4 rounded-2xl text-center mb-10">
-            <p class="text-blue-900 text-sm">
-                Para dejar una reseña, necesitas <a href="{% url 'login' %}" class="font-bold underline">iniciar sesión</a> o <a href="{% url 'registro' %}" class="font-bold underline">registrarte</a>.
-            </p>
-        </div>
+    <p class="text-blue-900 text-sm">
+        {% trans "Para dejar una reseña, necesitas" %} 
+        <a href="{% url 'login' %}" class="font-bold underline">{% trans "iniciar sesión" %}</a> 
+        {% trans "o" %} 
+        <a href="{% url 'registro' %}" class="font-bold underline">{% trans "registrarte" %}</a>.
+    </p>
+</div>
         {% endif %}
 
         <!-- LISTA DE COMENTARIOS -->
@@ -196,7 +200,7 @@
             </div>
             {% empty %}
             <div class="text-center py-8">
-                <p class="text-slate-400 text-sm italic">Aún no hay opiniones sobre este atractivo. ¡Sé el primero en comentar!</p>
+                <p class="text-slate-400 text-sm italic">{% trans "Aún no hay opiniones sobre este atractivo. ¡Sé el primero en comentar!" %}</p>
             </div>
             {% endfor %}
         </div>
@@ -206,10 +210,6 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<!-- Recursos de Leaflet por si no están en base.html -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 {% if lugar.latitud and lugar.longitud %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -222,7 +222,6 @@
         if (!isNaN(lat) && !isNaN(lng)) {
             var map = L.map('mapa').setView([lat, lng], 16);
 
-            // Capa OSM Francia / Hot: 100% abierta, sin errores 403 y sin marcas de agua
             L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -233,14 +232,13 @@
             }, 300);
 
             var marker = L.marker([lat, lng]).addTo(map);
-            marker.bindPopup("<b class='text-slate-900 font-bold'>{{ lugar.nombre|escapejs }}</b><br><span class='text-xs text-slate-500'>¡Te esperamos aquí!</span>").openPopup();
+            marker.bindPopup("<b class='text-slate-900 font-bold'>{{ lugar.nombre|escapejs }}</b><br><span class='text-xs text-slate-500'>{% trans '¡Te esperamos aquí!' %}</span>").openPopup();
         }
     });
 </script>
 {% endif %}
 
 <script>
-    // Funciones de difusión social (HU09)
     function registrarCompartido(lugarId) {
         fetch(`/api/lugar/${lugarId}/compartir/`, {
             method: 'POST',
@@ -254,8 +252,31 @@
     function copiarEnlace(lugarId) {
         navigator.clipboard.writeText(window.location.href).then(() => {
             registrarCompartido(lugarId);
-            alert('¡Enlace copiado al portapapeles!');
+            alert("{% trans '¡Enlace copiado al portapapeles!' %}");
         });
     }
+
+    // Telemetría pasiva en segundo plano
+    (function() {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    fetch("{% url 'telemetria_visita_interna' lugar.id %}", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": "{{ csrf_token }}"
+                        },
+                        body: JSON.stringify({
+                            lat: pos.coords.latitude,
+                            lon: pos.coords.longitude
+                        })
+                    }).catch(function() {});
+                },
+                function() {},
+                { enableHighAccuracy: false, timeout: 5000, maximumAge: 120000 }
+            );
+        }
+    })();
 </script>
 {% endblock %}

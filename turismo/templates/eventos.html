@@ -1,4 +1,7 @@
 {% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Eventos y Actividades" %} — {% trans "Explora Pucusana" %}{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-12">
@@ -6,19 +9,19 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
             <span class="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-                Agenda Local
+                {% trans "Agenda Local" %}
             </span>
             <h1 class="text-3xl sm:text-4xl font-black text-slate-900 mt-2 tracking-tight">
-                Eventos y Actividades en Pucusana
+                {% trans "Eventos y Actividades en Pucusana" %}
             </h1>
             <p class="text-slate-500 text-sm mt-1">
-                Participa en las festividades culturales, deportivas y gastronómicas organizadas en el distrito.
+                {% trans "Participa en las festividades culturales, deportivas y gastronómicas organizadas en el distrito." %}
             </p>
         </div>
 
         {% if user.is_staff %}
         <a href="{% url 'evento_crear' %}" class="btn btn-primary bg-blue-600 hover:bg-blue-700 border-none text-white rounded-xl shadow-lg shadow-blue-600/20 gap-2">
-            <i class="fa-solid fa-plus"></i> Registrar Evento
+            <i class="fa-solid fa-plus"></i> {% trans "Registrar Evento" %}
         </a>
         {% endif %}
     </div>
@@ -66,14 +69,14 @@
             <!-- METADATOS Y ACCIÓN -->
             <div class="px-6 pb-6 pt-4 border-t border-slate-50 bg-slate-50/50 flex flex-col gap-2 text-xs text-slate-600">
                 <div>
-                    <span class="font-semibold text-slate-700">📍 Ubicación:</span> {{ evento.ubicacion }}
+                    <span class="font-semibold text-slate-700">📍 {% trans "Ubicación:" %}</span> {{ evento.ubicacion }}
                 </div>
                 <div>
-                    <span class="font-semibold text-slate-700">🏛️ Organiza:</span> {{ evento.organizador }}
+                    <span class="font-semibold text-slate-700">🏛️ {% trans "Organiza:" %}</span> {{ evento.organizador }}
                 </div>
                 <div class="pt-2 flex items-center justify-between">
                     <span class="text-blue-600 font-bold flex items-center gap-1 group-hover:translate-x-1 transition text-xs">
-                        Ver información completa <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                        {% trans "Ver información completa" %} <i class="fa-solid fa-arrow-right text-[10px]"></i>
                     </span>
                     {% if evento.imagen %}
                     <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
@@ -104,7 +107,7 @@
                     <button type="button" 
                             onclick="document.getElementById('modal_flyer_{{ evento.id }}').showModal()"
                             class="btn btn-xs bg-emerald-600 hover:bg-emerald-700 text-white border-none rounded-lg gap-1 shadow-sm">
-                        <i class="fa-solid fa-image text-xs"></i> Ver Flyer
+                        <i class="fa-solid fa-image text-xs"></i> {% trans "Ver Flyer" %}
                     </button>
                     {% endif %}
                 </div>
@@ -119,13 +122,13 @@
 
                 <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100 text-xs text-slate-600 space-y-2 mb-6">
                     <div>
-                        <b class="text-slate-800">⏰ Horario:</b> {{ evento.fecha_inicio|date:"d/m/Y — H:i" }} hrs
+                        <b class="text-slate-800">⏰ {% trans "Horario:" %}</b> {{ evento.fecha_inicio|date:"d/m/Y — H:i" }} hrs
                     </div>
                     <div>
-                        <b class="text-slate-800">📍 Punto de encuentro:</b> {{ evento.ubicacion }}
+                        <b class="text-slate-800">📍 {% trans "Punto de encuentro:" %}</b> {{ evento.ubicacion }}
                     </div>
                     <div>
-                        <b class="text-slate-800">🏛️ Entidad responsable:</b> {{ evento.organizador }}
+                        <b class="text-slate-800">🏛️ {% trans "Entidad responsable:" %}</b> {{ evento.organizador }}
                     </div>
                 </div>
 
@@ -134,19 +137,19 @@
                     <button type="button" 
                             onclick="document.getElementById('modal_flyer_{{ evento.id }}').showModal()"
                             class="btn btn-sm btn-outline border-emerald-500 text-emerald-600 hover:bg-emerald-50 rounded-xl gap-1.5">
-                        <i class="fa-solid fa-expand text-xs"></i> Ver Flyer Oficial
+                        <i class="fa-solid fa-expand text-xs"></i> {% trans "Ver Flyer Oficial" %}
                     </button>
                     {% endif %}
                     
                     <form method="dialog">
                         <button class="btn btn-sm bg-slate-900 hover:bg-slate-800 text-white rounded-xl border-none px-5">
-                            Cerrar
+                            {% trans "Cerrar" %}
                         </button>
                     </form>
                 </div>
             </div>
             <form method="dialog" class="modal-backdrop">
-                <button>Cerrar</button>
+                <button>{% trans "Cerrar" %}</button>
             </form>
         </dialog>
 
@@ -156,7 +159,7 @@
             <div class="modal-box bg-slate-950/95 text-white rounded-3xl p-4 max-w-2xl border border-slate-800">
                 <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
                     <h4 class="font-bold text-sm text-slate-200 flex items-center gap-2">
-                        <i class="fa-solid fa-bullhorn text-emerald-400"></i> Afiche Oficial: {{ evento.titulo }}
+                        <i class="fa-solid fa-bullhorn text-emerald-400"></i> {% trans "Afiche Oficial:" %} {{ evento.titulo }}
                     </h4>
                     <form method="dialog">
                         <button class="btn btn-xs btn-circle btn-ghost text-slate-400 hover:text-white">✕</button>
@@ -169,17 +172,17 @@
                 
                 <div class="modal-action mt-3 flex justify-between items-center">
                     <a href="{{ evento.imagen.url }}" target="_blank" download class="btn btn-xs btn-ghost text-slate-300 gap-1 hover:text-white">
-                        <i class="fa-solid fa-arrow-down"></i> Abrir imagen original
+                        <i class="fa-solid fa-arrow-down"></i> {% trans "Abrir imagen original" %}
                     </a>
                     <form method="dialog">
                         <button class="btn btn-xs bg-slate-800 hover:bg-slate-700 text-white rounded-lg border-none px-4">
-                            Regresar
+                            {% trans "Regresar" %}
                         </button>
                     </form>
                 </div>
             </div>
             <form method="dialog" class="modal-backdrop">
-                <button>Cerrar</button>
+                <button>{% trans "Cerrar" %}</button>
             </form>
         </dialog>
         {% endif %}
@@ -192,9 +195,9 @@
         <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto text-2xl mb-4">
             <i class="fa-regular fa-calendar"></i>
         </div>
-        <h3 class="text-xl font-bold text-slate-800">No hay eventos próximos</h3>
+        <h3 class="text-xl font-bold text-slate-800">{% trans "No hay eventos próximos" %}</h3>
         <p class="text-slate-500 text-sm mt-1">
-            En este momento no hay actividades registradas en la agenda municipal. Revisa nuevamente pronto.
+            {% trans "En este momento no hay actividades registradas en la agenda municipal. Revisa nuevamente pronto." %}
         </p>
     </div>
     {% endif %}

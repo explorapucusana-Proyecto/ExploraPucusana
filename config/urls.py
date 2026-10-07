@@ -5,6 +5,8 @@ from django.conf.urls.static import static # NUEVO
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('i18n/', include('django.conf.urls.i18n')),  # 👈 Endpoint nativo para set_language
+    path('accounts/', include('allauth.urls')),  # 👈 Endpoints OAuth de Google, Facebook, MS
     path('', include('turismo.urls')),
 ]
 

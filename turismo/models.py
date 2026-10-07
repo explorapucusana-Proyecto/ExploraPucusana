@@ -1,5 +1,7 @@
+import math
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 # 1. Categorías (Para HU03 - Filtrado)
 class Categoria(models.Model):
@@ -85,3 +87,46 @@ class Evento(models.Model):
 
     def __str__(self):
         return f"{self.titulo} ({self.fecha_inicio.strftime('%d/%m/%Y')})"
+
+class VisitaFisica(models.Model):
+    """
+    Registro interno y silencioso de presencia física verificado por geofencing.
+    Alimenta los módulos de Business Analytics (Chart.js y Random Forest Batch).
+    """
+    lugar = models.ForeignKey(Lugar, on_delete=models.CASCADE, related_name="visitas_verificadas")
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    latitud_turista = models.FloatField()
+    longitud_turista = models.FloatField()
+    distancia_metros = models.FloatField(help_text="Distancia geodésica calculada en metros")
+    fecha_visita = models.DateField(default=timezone.now)
+    fecha_hora = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Visita Física Verificada"
+        verbose_name_plural = "Visitas Físicas Verificadas"
+        unique_together = ('lugar', 'usuario', 'fecha_visita')
+
+    def __str__(self):
+        nombre_usr = self.usuario.username if self.usuario else "Anónimo"
+        return f"Visita física [{nombre_usr}] en {self.lugar.nombre} ({self.fecha_visita})"
+
+class PrediccionTendencia(models.Model):
+    """
+    HU12: Almacena las proyecciones de afluencia generadas por el 
+    modelo Random Forest en modo Batch Semanal y la sugerencia prescriptiva.
+    """
+    lugar = models.ForeignKey(Lugar, on_delete=models.CASCADE, related_name="predicciones")
+    fecha_proyectada = models.DateField()
+    afluencia_estimada = models.PositiveIntegerField(help_text="Estimación de visitantes proyectados")
+    nivel_demanda = models.CharField(max_length=20, default="Media")  # Baja, Media, Alta
+    accion_prescriptiva = models.TextField(blank=True, help_text="Sugerencia de gestión para la municipalidad")
+    fecha_calculo = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Predicción de Tendencia"
+        verbose_name_plural = "Predicciones de Tendencias"
+        ordering = ['fecha_proyectada', '-afluencia_estimada']
+
+    def __str__(self):
+        return f"{self.lugar.nombre} - {self.fecha_proyectada}: {self.afluencia_estimada} visitas ({self.nivel_demanda})"
+

@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Mapa Turístico — Explora Pucusana{% endblock %}
+{% block title %}{% trans "Mapa Turístico" %} — {% trans "Explora Pucusana" %}{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-8">
@@ -9,15 +10,15 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
             <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                Mapa Turístico Interactivo 🗺️
+                {% trans "Mapa Turístico Interactivo" %} 🗺️
             </h1>
             <p class="text-slate-500 text-sm mt-1">
-                Explora los atractivos, restaurantes y destinos imperdibles de Pucusana en tiempo real.
+                {% trans "Explora los atractivos, restaurantes y destinos imperdibles de Pucusana en tiempo real." %}
             </p>
         </div>
         
         <a href="{% url 'index' %}" class="btn btn-sm btn-outline border-slate-300 text-slate-700 hover:bg-slate-100 hover:border-slate-400 gap-2 rounded-xl">
-            <i class="fa-solid fa-arrow-left text-xs"></i> Volver al catálogo
+            <i class="fa-solid fa-arrow-left text-xs"></i> {% trans "Volver al catálogo" %}
         </a>
     </div>
 
@@ -36,10 +37,8 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // 1. Inicializar el mapa centrado en Pucusana
         var map = L.map('mi_mapa').setView([-12.4830, -76.7960], 15);
 
-        // 2. Capa base OSM Francia/Hot (100% gratuita, sin marcas de agua y sin restricciones 403)
         L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -49,7 +48,9 @@
             map.invalidateSize();
         }, 200);
 
-        // 3. Pintar lugares dinámicamente desde Django
+        const strGratis = "{% trans '¡Gratis!' %}";
+        const strVerDetalles = "{% trans 'Ver detalles' %}";
+
         {% for lugar in lugares %}
             {% if lugar.latitud and lugar.longitud %}
             (function() {
@@ -77,11 +78,11 @@
 
                             <div class="flex items-center justify-between pt-2 border-t border-slate-100 mt-1">
                                 <span class="text-xs font-bold text-emerald-600">
-                                    {% if lugar.precio == 0 %}¡Gratis!{% else %}S/ {{ lugar.precio }}{% endif %}
+                                    {% if lugar.precio == 0 %}${strGratis}{% else %}S/ {{ lugar.precio }}{% endif %}
                                 </span>
                                 
                                 <a href="{% url 'detalle_lugar' lugar.id %}" class="inline-flex items-center gap-1 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-2.5 py-1.5 rounded-lg transition">
-                                    Ver detalles &rarr;
+                                    ${strVerDetalles} &rarr;
                                 </a>
                             </div>
                         </div>

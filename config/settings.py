@@ -4,7 +4,7 @@ Configuración optimizada para Explora Pucusana (Local + Render Ready).
 """
 import os
 from pathlib import Path
-from dotenv import load_dotenv # Importamos para leer el archivo .env
+from dotenv import load_dotenv  # Carga variables de entorno desde el archivo .env
 
 # Cargar variables de entorno
 load_dotenv()
@@ -13,17 +13,18 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key')
 
-# ## CAMBIO IMPORTANTE: Controlamos el modo Debug desde el archivo .env
+# Control del modo Debug desde el archivo .env
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-# ## CAMBIO IMPORTANTE: Permitimos cualquier host para desarrollo y Render
+# Hosts permitidos para desarrollo local y Render
 ALLOWED_HOSTS = ['*']
 
 
-# Application definition
+# ==========================================
+# DEFINICIÓN DE APLICACIONES
+# ==========================================
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -32,23 +33,48 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',  # Requerido por allauth
+
+    # Django Allauth Core
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
     
-    # ## TUS APPS
-    'turismo', # Tu app principal
+    # Proveedores Sociales
+    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.facebook',
+    'allauth.socialaccount.providers.microsoft',
+
+    # App principal del proyecto
+    'turismo',
 ]
+
+SITE_ID = 1
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+
+# ==========================================
+# MIDDLEWARE
+# ==========================================
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     
-    # ## CAMBIO IMPORTANTE: WhiteNoise sirve los archivos estáticos en producción
+    # WhiteNoise sirve los archivos estáticos en producción
     'whitenoise.middleware.WhiteNoiseMiddleware', 
     
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',  # Requerido para i18n
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',  # Middleware de allauth
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -56,7 +82,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [], # Dejamos esto vacío porque usaremos las carpetas dentro de la app 'turismo'
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -73,10 +99,10 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/5.0/ref/settings/#databases
+# ==========================================
+# BASE DE DATOS
+# ==========================================
 
-# Por ahora usamos SQLite. Cuando integremos Supabase, cambiaremos esto.
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -85,7 +111,10 @@ DATABASES = {
 }
 
 
-# Password validation
+# ==========================================
+# VALIDACIÓN DE CONTRASEÑAS
+# ==========================================
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -102,57 +131,80 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
-# ## CAMBIO IMPORTANTE: Configuración regional para Perú
+# ==========================================
+# INTERNACIONALIZACIÓN Y ZONA HORARIA
+# ==========================================
 
-LANGUAGE_CODE = 'es-pe'  # Español de Perú
+LANGUAGE_CODE = 'es-pe'
 
-TIME_ZONE = 'America/Lima' # Hora de Perú
+TIME_ZONE = 'America/Lima'
 
 USE_I18N = True
 
 USE_TZ = True
 
+# Idiomas disponibles en Explora Pucusana
+LANGUAGES = [
+    ('es', 'Español'),
+    ('en', 'English'),
+]
 
-# Static files (CSS, JavaScript, Images)
-# ## CAMBIO IMPORTANTE: Configuración para que Tailwind y CSS funcionen en Render
+# Directorio de archivos de traducción
+LOCALE_PATHS = [
+    os.path.join(BASE_DIR, 'locale'),
+]
+
+
+# ==========================================
+# ARCHIVOS ESTÁTICOS (CSS, JS, IMÁGENES)
+# ==========================================
 
 STATIC_URL = 'static/'
 
-# Aquí es donde Django buscará archivos estáticos durante el desarrollo
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'turismo/static'), # Asegúrate de crear esta carpeta después
+    os.path.join(BASE_DIR, 'turismo/static'),
 ]
 
-# Aquí es donde Django recolectará todos los archivos cuando hagas "deploy"
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Motor de almacenamiento para producción (hace que la web cargue rápido y comprime archivos)
 if not DEBUG:
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+
 # ==========================================
-# CONFIGURACIÓN DE SEGURIDAD Y SESIONES
+# GESTIÓN DE SESIONES Y ACCESOS
 # ==========================================
 
-# 1. Cierra la sesión automáticamente al cerrar el navegador
+# Cierra la sesión al cerrar el navegador
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
-# 2. Tiempo máximo de inactividad (en segundos). Ejemplo: 900 = 15 minutos
+# Tiempo de vida de la cookie de sesión (1 hora de inactividad)
 SESSION_COOKIE_AGE = 3600 
 
-# 3. Renueva el temporizador cada vez que el usuario hace clic en algo
+# Renueva la expiración de la sesión con cada interacción
 SESSION_SAVE_EVERY_REQUEST = True
 
-# 4. Le dice a Django a dónde enviar a la gente si su sesión expira o intentan 
-# entrar a una página prohibida sin iniciar sesión
+# Redirecciones de acceso
 LOGIN_URL = 'login'
-
-# A dónde ir después de iniciar sesión con éxito (al catálogo)
 LOGIN_REDIRECT_URL = 'index' 
+LOGOUT_REDIRECT_URL = 'login'
 
-# A dónde ir después de cerrar sesión (a la portada pública)
-LOGOUT_REDIRECT_URL = 'landing'
+
+# ==========================================
+# CONFIGURACIÓN DJANGO-ALLAUTH (ACTUALIZADA)
+# ==========================================
+
+# Permite iniciar sesión con correo electrónico o nombre de usuario
+ACCOUNT_LOGIN_METHODS = {'email', 'username'}
+
+# Campos solicitados y obligatorios en el registro manual directo
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
+
+# Sin confirmación por correo para no frenar la experiencia del turista
+ACCOUNT_EMAIL_VERIFICATION = 'none'
+
+# Login social automático: vincula la cuenta y extrae los datos del proveedor
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_QUERY_EMAIL = True
