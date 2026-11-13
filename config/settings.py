@@ -5,6 +5,7 @@ Configuración optimizada para Explora Pucusana (Local + Render Ready).
 import os
 from pathlib import Path
 from dotenv import load_dotenv  # Carga variables de entorno desde el archivo .env
+import dj_database_url
 
 # Cargar variables de entorno
 load_dotenv()
@@ -100,15 +101,26 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 
 # ==========================================
-# BASE DE DATOS
+# BASE DE DATOS (Híbrida: Supabase / SQLite)
 # ==========================================
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
+
+if DATABASE_URL.startswith(('postgres://', 'postgresql://')):
+    DATABASES = {
+        'default': dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=True
+        )
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # ==========================================
@@ -156,7 +168,7 @@ LOCALE_PATHS = [
 
 
 # ==========================================
-# ARCHIVOS ESTÁTICOS (CSS, JS, IMÁGENES)
+# ARCHIVOS ESTÁTICOS Y MULTIMEDIA
 # ==========================================
 
 STATIC_URL = 'static/'
@@ -166,6 +178,9 @@ STATICFILES_DIRS = [
 ]
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR
 
 if not DEBUG:
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
