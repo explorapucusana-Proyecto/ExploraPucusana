@@ -36,7 +36,8 @@ MAPEO_EXCEL_A_DJANGO = {
 
 def obtener_recomendaciones_rf(usuario, lugares_queryset):
     """
-    Predice el lugar ideal para el usuario usando Random Forest y lo pone primero.
+    Predice el lugar ideal para el usuario usando Random Forest cruzando
+    edad, procedencia e intereses activos del perfil.
     """
     if not modelo_rf or not codificadores or not hasattr(usuario, 'perfilusuario'):
         print("⚠️ [AVISO] IA apagada o el usuario no tiene perfil. Mostrando catálogo normal.")
@@ -44,40 +45,75 @@ def obtener_recomendaciones_rf(usuario, lugares_queryset):
 
     perfil = usuario.perfilusuario
     
-    # 3. Preparar los datos del turista
+    # 1. Extraer datos reales del perfil
     edad = perfil.edad or 30
     procedencia = perfil.nacionalidad or 'Peruano'
     genero = 'Hombre'
-    motivo = 'Turismo'
+    
+    # 2. Rescatar el interés real del usuario (Aventura, Gastronomía, Playa, etc.)
+    intereses_usuario = list(perfil.intereses.values_list('nombre', flat=True))
+    
+    if intereses_usuario:
+        # Tomamos el interés seleccionado (ej: 'Aventura')
+        motivo_usuario = intereses_usuario[0]
+    else:
+        motivo_usuario = 'Turismo'
 
+    # 3. Codificación con fallback seguro
     try:
         gen_encoded = codificadores['genero'].transform([genero])[0]
-        proc_encoded = codificadores['procedencia'].transform([procedencia])[0]
-        mot_encoded = codificadores['motivo'].transform([motivo])[0]
-    except ValueError:
-        gen_encoded, proc_encoded, mot_encoded = 0, 0, 0
+    except Exception:
+        gen_encoded = 0
 
-    # 4. LA PREDICCIÓN
+    try:
+        proc_encoded = codificadores['procedencia'].transform([procedencia])[0]
+    except Exception:
+        proc_encoded = 0
+
+    try:
+        # Intentamos codificar el interés; si no existe en las clases del encoder, fallback a 0
+        mot_encoded = codificadores['motivo'].transform([motivo_usuario])[0]
+    except Exception:
+        mot_encoded = 0
+
+    # 4. Predicción del modelo
     datos_usuario = [[edad, gen_encoded, proc_encoded, mot_encoded]]
     prediccion_excel = str(modelo_rf.predict(datos_usuario)[0])
     
-    print(f"🤖 [DEBUG IA] La IA predijo el número del Excel: {prediccion_excel}")
+    print(f"🤖 [DEBUG IA] Interés: {motivo_usuario} | Predicción Excel: {prediccion_excel}")
 
-    # 5. LA TRADUCCIÓN
+    # 5. Traducción del ID
     id_django_recomendado = MAPEO_EXCEL_A_DJANGO.get(prediccion_excel, None)
-    print(f"🔄 [DEBUG TRADUCCIÓN] Se tradujo al ID de Django: {id_django_recomendado}")
 
-    # 6. Reordenar el Catálogo Visual
+    # 6. Reordenamiento reactivo del catálogo
     lugares_ordenados = list(lugares_queryset)
     recomendados_ids = []
 
+    # REGLA DE COHERENCIA CON INTERESES:
+    # Si el usuario eligió intereses específicos (ej: 'Aventura'), buscamos primero 
+    # si el lugar predicho coincide; si no coincide con su categoría, priorizamos 
+    # el atractivo que sí coincida con su interés para evitar inconsistencias.
+    lugar_prioritario = None
+
     if id_django_recomendado:
-        for lugar in lugares_ordenados:
-            if lugar.id == id_django_recomendado:
-                lugares_ordenados.remove(lugar)
-                lugares_ordenados.insert(0, lugar) # Lo ponemos primero
-                recomendados_ids.append(lugar.id)  # Etiqueta de Recomendado
-                break
+        candidato = next((l for l in lugares_ordenados if l.id == id_django_recomendado), None)
+        if candidato and intereses_usuario and candidato.categoria and candidato.categoria.nombre in intereses_usuario:
+            lugar_prioritario = candidato
+
+    # Si la predicción numérica del Excel cayó en una playa pero el usuario pidió Aventura:
+    if not lugar_prioritario and intereses_usuario:
+        lugar_prioritario = next((l for l in lugares_ordenados if l.categoria and l.categoria.nombre in intereses_usuario), None)
+
+    # Si no hubo coincidencia de interés, usamos el destino predicho por defecto
+    if not lugar_prioritario and id_django_recomendado:
+        lugar_prioritario = next((l for l in lugares_ordenados if l.id == id_django_recomendado), None)
+
+    # Aplicar orden prioritario en la lista final
+    if lugar_prioritario:
+        lugares_ordenados.remove(lugar_prioritario)
+        lugares_ordenados.insert(0, lugar_prioritario)
+        recomendados_ids.append(lugar_prioritario.id)
+        print(f"🎯 [RECOMENDACIÓN FINAL] Destino sugerido: {lugar_prioritario.nombre} ({lugar_prioritario.categoria.nombre if lugar_prioritario.categoria else 'General'})")
 
     return lugares_ordenados, recomendados_ids
 

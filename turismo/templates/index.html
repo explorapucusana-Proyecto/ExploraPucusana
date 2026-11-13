@@ -69,7 +69,7 @@
                 </select>
             </div>
 
-            <!-- Botón Buscar (Fallback para submit convencional) -->
+            <!-- Botón Buscar -->
             <button type="submit" class="btn btn-primary bg-blue-600 hover:bg-blue-700 border-none text-white rounded-xl px-6 gap-2">
                 <span>Buscar</span>
             </button>
@@ -82,19 +82,19 @@
     </div>
 </div>
 
-<!-- GRID DE LUGARES TURÍSTICOS -->
+<!-- GRID DE LUGARES TURÍSTICOS (LIMITADO A TOP 6) -->
 <section class="max-w-7xl mx-auto px-4 py-16">
     <div class="flex justify-between items-end mb-8">
         <div>
             <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Atractivos Destacados</h2>
-            <p class="text-slate-500 text-sm mt-1">Lugares y experiencias recomendadas en el distrito</p>
+            <p class="text-slate-500 text-sm mt-1">Experiencias y rutas recomendadas según tu perfil (Top 6)</p>
         </div>
     </div>
 
-    <!-- Contenedor dinámico de tarjetas -->
+    <!-- Contenedor dinámico de tarjetas: con slice:":6" para asegurar tope de 6 -->
     <div id="grid-lugares" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         
-        {% for lugar in lugares %}
+        {% for lugar in lugares|slice:":6" %}
         <div class="group bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col">
             
             <!-- Contenedor Imagen -->
@@ -168,7 +168,7 @@
     </div>
 </section>
 
-<!-- HU03: SCRIPT DE FILTRADO ASÍNCRONO SIN RECARGA -->
+<!-- HU03: SCRIPT DE FILTRADO ASÍNCRONO SIN RECARGA (CON TOPE EN 6) -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const inputBuscar = document.getElementById('input-buscar');
@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch(`/api/buscar-lugares/?buscar=${encodeURIComponent(query)}&categoria=${encodeURIComponent(categoria)}`)
             .then(res => res.json())
             .then(data => {
-                if (data.lugares.length === 0) {
+                if (!data.lugares || data.lugares.length === 0) {
                     gridLugares.innerHTML = `
                         <div class="col-span-1 sm:col-span-2 lg:col-span-3 text-center py-16 bg-white rounded-3xl border border-dashed border-slate-200 p-8">
                             <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto text-2xl mb-4">
@@ -203,7 +203,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                gridLugares.innerHTML = data.lugares.map(lugar => `
+                // Limitar exactamente a 6 en el renderizado asíncrono
+                const lugaresTop6 = data.lugares.slice(0, 6);
+
+                gridLugares.innerHTML = lugaresTop6.map(lugar => `
                     <div class="group bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col">
                         <div class="relative overflow-hidden h-52 bg-slate-100">
                             <img src="${lugar.imagen_url || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80'}" 
@@ -224,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div>
                                     <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold block">Ingreso / Costo</span>
                                     <span class="text-lg font-extrabold text-emerald-600">
-                                        ${lugar.precio == 0 ? '¡Gratis!' : 'S/ ' + lugar.precio.toFixed(2)}
+                                        ${lugar.precio == 0 ? '¡Gratis!' : 'S/ ' + Number(lugar.precio).toFixed(2)}
                                     </span>
                                 </div>
                                 <a href="/lugar/${lugar.id}/" class="inline-flex items-center gap-1 text-sm font-bold text-blue-600 hover:text-blue-700">

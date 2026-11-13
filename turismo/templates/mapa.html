@@ -24,33 +24,64 @@
 
     <!-- CONTENEDOR DEL MAPA -->
     <div class="bg-white p-3 rounded-3xl shadow-xl border border-slate-200">
-        <div id="mi_mapa" class="w-full h-[600px] rounded-2xl z-10"></div>
+        <div id="mi_mapa" class="w-full h-[600px] rounded-2xl z-10 overflow-hidden"></div>
     </div>
 
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
-<!-- Recursos de Leaflet directos para garantizar carga -->
+<!-- Recursos oficiales de Leaflet -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        var map = L.map('mi_mapa').setView([-12.4830, -76.7960], 15);
+        // Corrección de rutas de íconos por defecto de Leaflet
+        delete L.Icon.Default.prototype._getIconUrl;
+        L.Icon.Default.mergeOptions({
+            iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+            iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        });
 
-        L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        // Inicialización centrada en Pucusana
+        var map = L.map('mi_mapa', {
+            zoomControl: true,
+            scrollWheelZoom: true
+        }).setView([-12.4830, -76.7960], 15);
+
+        // Capa Esri World StreetMap: pública, estable, sin 403 y sin marcas de agua
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 18,
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom'
         }).addTo(map);
 
-        setTimeout(function() {
-            map.invalidateSize();
-        }, 200);
+        // Control dinámico de tamaño para evitar fondo plomo al agrandar ventana o contenedor
+        function recalcularMapa() {
+            if (map) {
+                map.invalidateSize();
+            }
+        }
+
+        window.addEventListener('load', recalcularMapa);
+        window.addEventListener('resize', recalcularMapa);
+
+        var contenedorMapa = document.getElementById('mi_mapa');
+        if (window.ResizeObserver && contenedorMapa) {
+            var resizeObserver = new ResizeObserver(function() {
+                recalcularMapa();
+            });
+            resizeObserver.observe(contenedorMapa);
+        }
+
+        setTimeout(recalcularMapa, 250);
+        setTimeout(recalcularMapa, 600);
 
         const strGratis = "{% trans '¡Gratis!' %}";
         const strVerDetalles = "{% trans 'Ver detalles' %}";
 
+        // Iteración segura de atractivos turísticos
         {% for lugar in lugares %}
             {% if lugar.latitud and lugar.longitud %}
             (function() {

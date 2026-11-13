@@ -14,11 +14,8 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-from .models import Lugar, Categoria, PerfilUsuario, Resena, Evento, VisitaFisica
-from .ml_engine import obtener_recomendaciones_rf
-
-from .models import PrediccionTendencia
-from .ml_engine import ejecutar_batch_predictivo_semanal
+from .models import Lugar, Categoria, PerfilUsuario, Resena, Evento, VisitaFisica, PrediccionTendencia
+from .ml_engine import obtener_recomendaciones_rf, ejecutar_batch_predictivo_semanal
 
 RADIO_TOLERANCIA_METROS = 300.0  # Perímetro de presencia física en el atractivo en metros
 
@@ -256,6 +253,8 @@ def landing(request):
     return render(request, 'landing.html')
 
 
+# HU02 / HU03 / HU05: Catálogo y Búsqueda (PROTEGIDO)
+@login_required
 def index(request):
     lugares_lista = Lugar.objects.select_related('categoria').all()
     categorias_lista = Categoria.objects.all()
@@ -393,7 +392,8 @@ def registro(request):
             usuario.email = correo_ingresado
             usuario.save()
             PerfilUsuario.objects.create(usuario=usuario)
-            login(request, usuario)
+            # Solución de backend explícito para coexistir con allauth
+            login(request, usuario, backend='django.contrib.auth.backends.ModelBackend')
             messages.success(request, f"¡Registro completado con éxito! Bienvenido(a), {usuario.username}.")
             return redirect('perfil')
     else:
@@ -434,18 +434,15 @@ def dashboard_municipal(request):
     Pasa las variables consolidadas directamente al template para renderizado nativo
     y mantiene compatibilidad con los llamados asíncronos de Chart.js.
     """
-    # 1. Datos para el gráfico de torta de categorías (ordenadas de mayor a menor)
     categorias = Categoria.objects.annotate(total=Count('lugares')).order_by('-total')
     nombres_categorias = [c.nombre for c in categorias]
     totales_categorias = [c.total for c in categorias]
 
-    # 2. Métricas de cabecera (KPIs descriptivos)
     total_lugares = Lugar.objects.count()
     total_visitas = VisitaFisica.objects.count()
     total_resenas = Resena.objects.count()
     promedio_general = Resena.objects.aggregate(prom=Avg('calificacion'))['prom'] or 0.0
 
-    # 3. Top 5 de atractivos mejor calificados
     lugares_top = Lugar.objects.annotate(
         promedio=Avg('resenas__calificacion')
     ).exclude(promedio__isnull=True).order_by('-promedio')[:5]
@@ -454,12 +451,10 @@ def dashboard_municipal(request):
     promedios_lugares = [round(float(l.promedio or 0.0), 2) for l in lugares_top]
 
     contexto = {
-        # Serializado seguro para Chart.js
         'nombres_categorias': json.dumps(nombres_categorias),
         'totales_categorias': json.dumps(totales_categorias),
         'nombres_lugares': json.dumps(nombres_lugares),
         'promedios_lugares': json.dumps(promedios_lugares),
-        # Variables numéricas para tarjetas de cabecera
         'total_lugares': total_lugares,
         'total_visitas': total_visitas,
         'total_resenas': total_resenas,
@@ -472,6 +467,7 @@ def mapa_turistico(request):
     lugares = Lugar.objects.all()
     return render(request, 'mapa.html', {'lugares': lugares})
 
+
 @staff_member_required
 def api_analytics_predictivo(request):
     """
@@ -479,7 +475,6 @@ def api_analytics_predictivo(request):
     y las recomendaciones prescriptivas generadas por el batch.
     """
     hoy = timezone.now().date()
-    # Si no hay predicciones vigentes, ejecutamos el batch automáticamente
     if not PrediccionTendencia.objects.filter(fecha_proyectada__gte=hoy).exists():
         ejecutar_batch_predictivo_semanal()
 
@@ -487,13 +482,11 @@ def api_analytics_predictivo(request):
         fecha_proyectada__gte=hoy
     ).select_related('lugar').order_by('fecha_proyectada')
 
-    # Agrupación por fecha para el gráfico de línea temporal
     fechas_dict = {}
     for p in predicciones:
         f_str = p.fecha_proyectada.strftime('%a %d/%m')
         fechas_dict[f_str] = fechas_dict.get(f_str, 0) + p.afluencia_estimada
 
-    # Prescripciones destacadas (alertas y oportunidades)
     alertas_prescriptivas = [{
         'lugar': p.lugar.nombre,
         'fecha': p.fecha_proyectada.strftime('%d/%m/%Y'),
@@ -510,32 +503,3 @@ def api_analytics_predictivo(request):
         },
         'alertas_prescriptivas': alertas_prescriptivas
     })
-# turismo/views.py
-
-# HU02 / HU03 / HU05: Catálogo y Búsqueda (PROTEGIDO)
-@login_required
-def index(request):
-    lugares_lista = Lugar.objects.select_related('categoria').all()
-    categorias_lista = Categoria.objects.all()
-    
-    busqueda = request.GET.get('buscar', '').strip()
-    categoria_id = request.GET.get('categoria', '').strip()
-    
-    if busqueda:
-        lugares_lista = lugares_lista.filter(nombre__icontains=busqueda)
-        
-    if categoria_id and categoria_id.isdigit():
-        lugares_lista = lugares_lista.filter(categoria_id=int(categoria_id))
-        
-    recomendados_ids = [] 
-    if request.user.is_authenticated and not request.user.is_staff:
-        lugares_lista, recomendados_ids = obtener_recomendaciones_rf(request.user, lugares_lista)
-        
-    contexto = {
-        'lugares': lugares_lista,
-        'categorias': categorias_lista, 
-        'recomendados_ids': recomendados_ids,
-        'busqueda_actual': busqueda,
-        'categoria_actual': int(categoria_id) if categoria_id.isdigit() else None
-    }
-    return render(request, 'index.html', contexto)
