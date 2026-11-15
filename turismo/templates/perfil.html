@@ -70,7 +70,7 @@
                            {% if cat.id in intereses_actuales %}checked{% endif %} />
                     
                     <div class="px-5 py-3 rounded-full border-2 border-gray-200 bg-white text-gray-600 font-medium transition-all duration-200 peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:text-blue-800 hover:border-blue-300 shadow-sm flex items-center gap-2 select-none">
-                        <span class="text-xl">{{ cat.icono }}</span>
+                        <span class="text-xl"><i class="{{ cat.icono|default:'fa-solid fa-map-pin' }}"></i></span>
                         <span>{{ cat.nombre }}</span>
                     </div>
                 </label>

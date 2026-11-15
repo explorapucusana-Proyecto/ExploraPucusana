@@ -103,7 +103,7 @@
                             
                             {% if lugar.categoria %}
                                 <span class="inline-block text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md mb-2">
-                                    {{ lugar.categoria.icono }} {{ lugar.categoria.nombre|escapejs }}
+                                    <i class="{{ lugar.categoria.icono|default:'fa-solid fa-map-pin' }}"></i> {{ lugar.categoria.nombre|escapejs }}
                                 </span>
                             {% endif %}
 

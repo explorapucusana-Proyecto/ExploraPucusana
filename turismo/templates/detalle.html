@@ -27,7 +27,7 @@
 
                 {% if lugar.categoria %}
                     <div class="absolute top-4 left-4 bg-slate-900/80 backdrop-blur-md text-white text-xs font-semibold px-3 py-1.5 rounded-xl border border-white/10">
-                        {{ lugar.categoria.icono }} {{ lugar.categoria.nombre }}
+                        <i class="{{ lugar.categoria.icono|default:'fa-solid fa-map-pin' }}"></i> {{ lugar.categoria.nombre }}
                     </div>
                 {% endif %}
             </div>
