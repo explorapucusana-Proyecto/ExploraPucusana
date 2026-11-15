@@ -114,8 +114,9 @@
 
                 <!-- Categoría Flotante -->
                 {% if lugar.categoria %}
-                <div class="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-md text-white text-xs font-medium px-2.5 py-1 rounded-lg border border-white/10">
-                    {{ lugar.categoria.icono }} {{ lugar.categoria.nombre }}
+                <div class="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-md text-white text-xs font-medium px-2.5 py-1 rounded-lg border border-white/10 flex items-center gap-1.5">
+                    <i class="{{ lugar.categoria.icono|default:'fa-solid fa-map-pin' }}"></i>
+                    <span>{{ lugar.categoria.nombre }}</span>
                 </div>
                 {% endif %}
             </div>
@@ -212,8 +213,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             <img src="${lugar.imagen_url || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80'}" 
                                  alt="${lugar.nombre}" 
                                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                            <div class="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-md text-white text-xs font-medium px-2.5 py-1 rounded-lg border border-white/10">
-                                📍 ${lugar.categoria}
+                            <div class="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-md text-white text-xs font-medium px-2.5 py-1 rounded-lg border border-white/10 flex items-center gap-1.5">
+                                <i class="${lugar.categoria_icono || 'fa-solid fa-map-pin'}"></i>
+                                <span>${lugar.categoria}</span>
                             </div>
                         </div>
                         <div class="p-5 flex flex-col flex-grow justify-between">
