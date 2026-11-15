@@ -12,9 +12,9 @@ urlpatterns = [
     # HU03: Búsqueda dinámica Fetch API (Sprint 3)
     path('api/buscar-lugares/', views.api_buscar_lugares, name='api_buscar_lugares'),
 
-    # HU07: Agenda de Eventos Locales (Sprint 3)
+    # HU07: Agenda de Eventos Locales (Sprint 3) - fuera de /admin/ para evitar colisión
     path('eventos/', views.eventos_publicos, name='eventos_publicos'),
-    path('admin/eventos/crear/', views.evento_crear, name='evento_crear'),
+    path('gestion-municipal/eventos/crear/', views.evento_crear, name='evento_crear'),
 
     # HU09: Métrica al compartir en redes (Sprint 3)
     path('api/lugar/<int:lugar_id>/compartir/', views.registrar_compartido, name='registrar_compartido'),
@@ -33,7 +33,7 @@ urlpatterns = [
     path('gestion-municipal/lugares/crear/', views.admin_lugar_crear, name='admin_lugar_crear'),
     path('gestion-municipal/lugares/editar/<int:lugar_id>/', views.admin_lugar_editar, name='admin_lugar_editar'),
     path('gestion-municipal/lugares/eliminar/<int:lugar_id>/', views.admin_lugar_eliminar, name='admin_lugar_eliminar'),
-    
+
     # Telemetría interna pasiva (Sin interacción de usuario)
     path('api/telemetria/lugar/<int:lugar_id>/', views.telemetria_visita_interna, name='telemetria_visita_interna'),
 
@@ -42,5 +42,4 @@ urlpatterns = [
     path('api/analytics/descriptivo/', views.api_analytics_descriptivo, name='api_analytics_descriptivo'),
 
     path('api/analytics/predictivo/', views.api_analytics_predictivo, name='api_analytics_predictivo'),
-
 ]
