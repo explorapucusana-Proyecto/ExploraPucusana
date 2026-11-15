@@ -16,20 +16,25 @@ class CategoriaAdminForm(forms.ModelForm):
 
 class CategoriaAdmin(admin.ModelAdmin):
     form = CategoriaAdminForm
-    list_display = ('nombre', 'vista_previa_icono', 'icono')
+    list_display = ('nombre', 'vista_previa_icono')
     search_fields = ('nombre',)
 
     @admin.display(description='Ícono')
     def vista_previa_icono(self, obj):
-        if obj.icono:
-            return format_html('<i class="{}" style="font-size: 18px; color: #2563eb;"></i>', obj.icono)
+        if obj.icono and 'fa-' in obj.icono:
+            return format_html(
+                '<span style="display:inline-flex; align-items:center; gap:8px;">'
+                '<i class="{}" style="font-size:18px; color:#2563eb;"></i>'
+                '<code style="font-size:11px; color:#64748b;">{}</code>'
+                '</span>',
+                obj.icono, obj.icono
+            )
         return '-'
 
     class Media:
         css = {
             'all': ('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',)
         }
-
 
 # Configuraciones para que el admin se vea profesional
 class LugarAdmin(admin.ModelAdmin):
