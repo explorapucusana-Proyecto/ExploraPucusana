@@ -63,7 +63,7 @@
                     <option value="">Todas las categorías</option>
                     {% for cat in categorias %}
                         <option value="{{ cat.id }}" {% if request.GET.categoria == cat.id|stringformat:"s" %}selected{% endif %}>
-                            {{ cat.icono }} {{ cat.nombre }}
+                           {{ cat.nombre }}
                         </option>
                     {% endfor %}
                 </select>
