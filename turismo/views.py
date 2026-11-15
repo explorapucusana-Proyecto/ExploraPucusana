@@ -297,6 +297,7 @@ def api_buscar_lugares(request):
         'nombre': l.nombre,
         'descripcion': l.descripcion[:120] + '...',
         'categoria': l.categoria.nombre if l.categoria else 'General',
+        'categoria_icono': l.categoria.icono if (l.categoria and l.categoria.icono) else 'fa-solid fa-map-pin',
         'latitud': l.latitud,
         'longitud': l.longitud,
         'precio': float(l.precio),
