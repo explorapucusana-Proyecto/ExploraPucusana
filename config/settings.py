@@ -21,6 +21,31 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 # Hosts permitidos para desarrollo local y Render
 ALLOWED_HOSTS = ['*']
+CSRF_TRUSTED_ORIGINS = [
+    'https://explorapucusana.munipucusana.gob.pe',
+    'https://explorapucusana.onrender.com',
+]
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'allauth': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}
 
 
 # ==========================================
