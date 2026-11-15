@@ -256,6 +256,10 @@ def landing(request):
 # HU02 / HU03 / HU05: Catálogo y Búsqueda (PROTEGIDO)
 @login_required
 def index(request):
+    if request.user.is_authenticated:
+        perfil, _ = PerfilUsuario.objects.get_or_create(usuario=request.user)
+        if not perfil.intereses.exists() or perfil.edad is None:
+            return redirect('perfil')
     lugares_lista = Lugar.objects.select_related('categoria').all()
     categorias_lista = Categoria.objects.all()
 
