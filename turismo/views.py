@@ -18,6 +18,9 @@ from .models import Lugar, Categoria, PerfilUsuario, Resena, Evento, VisitaFisic
 from .ml_engine import obtener_recomendaciones_rf, ejecutar_batch_predictivo_semanal
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+from decimal import Decimal, InvalidOperation
+from django.utils.dateparse import parse_datetime
+from django.db import IntegrityError
 
 RADIO_TOLERANCIA_METROS = 300.0  # Perímetro de presencia física en el atractivo en metros
 
@@ -58,6 +61,10 @@ def telemetria_visita_interna(request, lugar_id):
     except (ValueError, TypeError, json.JSONDecodeError):
         return JsonResponse({'status': 'ignored'}, status=200)
 
+    # Validar rango geográfico real y evitar NaN / Inf
+    if not (-90.0 <= lat_usr <= 90.0) or not (-180.0 <= lon_usr <= 180.0):
+        return JsonResponse({'status': 'ignored'}, status=200)
+
     try:
         lugar = Lugar.objects.get(id=lugar_id)
     except Lugar.DoesNotExist:
@@ -76,15 +83,18 @@ def telemetria_visita_interna(request, lugar_id):
         ).exists()
 
         if not ya_registrado:
-            VisitaFisica.objects.create(
-                lugar=lugar,
-                usuario=usuario_actual,
-                latitud_turista=lat_usr,
-                longitud_turista=lon_usr,
-                distancia_metros=round(distancia, 2),
-                fecha_visita=hoy
-            )
-            Lugar.objects.filter(id=lugar.id).update(visitas=F('visitas') + 1)
+            try:
+                VisitaFisica.objects.create(
+                    lugar=lugar,
+                    usuario=usuario_actual,
+                    latitud_turista=round(lat_usr, 6),
+                    longitud_turista=round(lon_usr, 6),
+                    distancia_metros=round(distancia, 2),
+                    fecha_visita=hoy
+                )
+                Lugar.objects.filter(id=lugar.id).update(visitas=F('visitas') + 1)
+            except IntegrityError:
+                pass
 
     return JsonResponse({'status': 'ok'})
 
@@ -165,34 +175,13 @@ def admin_lugares_lista(request):
 def admin_lugar_crear(request):
     categorias = Categoria.objects.all()
     if request.method == 'POST':
-        nombre = request.POST.get('nombre', '').strip()
-        descripcion = request.POST.get('descripcion', '').strip()
-        categoria_id = request.POST.get('categoria')
-        latitud = request.POST.get('latitud')
-        longitud = request.POST.get('longitud')
-        precio = request.POST.get('precio', '0.00')
-        horario = request.POST.get('horario', '08:00 AM - 06:00 PM')
-        direccion = request.POST.get('direccion', '')
-        telefono = request.POST.get('telefono', '')
-        imagen = request.FILES.get('imagen')
-
-        if not nombre or not descripcion:
-            messages.error(request, "El nombre y la descripción son requeridos.")
+        datos, error = _validar_datos_lugar(request)
+        if error:
+            messages.error(request, error)
             return render(request, 'admin_lugar_form.html', {'categorias': categorias})
 
-        nuevo_lugar = Lugar.objects.create(
-            nombre=nombre,
-            descripcion=descripcion,
-            categoria_id=categoria_id if categoria_id else None,
-            latitud=float(latitud) if latitud else -12.4830,
-            longitud=float(longitud) if longitud else -76.7960,
-            precio=precio if precio else 0.00,
-            horario=horario,
-            direccion=direccion,
-            telefono=telefono,
-            imagen=imagen
-        )
-        messages.success(request, f"Atractivo turístico '{nuevo_lugar.nombre}' registrado con éxito.")
+        nuevo_lugar = Lugar.objects.create(**datos)
+        messages.success(request, f"✅ Atractivo turístico '{nuevo_lugar.nombre}' registrado con éxito.")
         return redirect('admin_lugares_lista')
 
     return render(request, 'admin_lugar_form.html', {'categorias': categorias})
@@ -204,32 +193,26 @@ def admin_lugar_editar(request, lugar_id):
     categorias = Categoria.objects.all()
 
     if request.method == 'POST':
-        nombre = request.POST.get('nombre', '').strip()
-        descripcion = request.POST.get('descripcion', '').strip()
-
-        if not nombre or not descripcion:
-            messages.error(request, "El nombre y la descripción no pueden estar vacíos.")
+        datos, error = _validar_datos_lugar(request, lugar_actual=lugar)
+        if error:
+            messages.error(request, error)
             return render(request, 'admin_lugar_form.html', {'lugar': lugar, 'categorias': categorias})
 
-        lugar.nombre = nombre
-        lugar.descripcion = descripcion
-        lugar.categoria_id = request.POST.get('categoria') or None
+        lugar.nombre = datos['nombre']
+        lugar.descripcion = datos['descripcion']
+        lugar.categoria_id = datos['categoria_id']
+        lugar.latitud = datos['latitud']
+        lugar.longitud = datos['longitud']
+        lugar.precio = datos['precio']
+        lugar.horario = datos['horario']
+        lugar.direccion = datos['direccion']
+        lugar.telefono = datos['telefono']
 
-        if request.POST.get('latitud'):
-            lugar.latitud = float(request.POST.get('latitud'))
-        if request.POST.get('longitud'):
-            lugar.longitud = float(request.POST.get('longitud'))
-
-        lugar.precio = request.POST.get('precio', lugar.precio)
-        lugar.horario = request.POST.get('horario', lugar.horario)
-        lugar.direccion = request.POST.get('direccion', lugar.direccion)
-        lugar.telefono = request.POST.get('telefono', lugar.telefono)
-
-        if 'imagen' in request.FILES:
-            lugar.imagen = request.FILES['imagen']
+        if datos['imagen']:
+            lugar.imagen = datos['imagen']
 
         lugar.save()
-        messages.success(request, f"Atractivo '{lugar.nombre}' actualizado correctamente.")
+        messages.success(request, f"✅ Atractivo '{lugar.nombre}' actualizado correctamente.")
         return redirect('admin_lugares_lista')
 
     return render(request, 'admin_lugar_form.html', {'lugar': lugar, 'categorias': categorias})
@@ -383,30 +366,128 @@ def eventos_publicos(request):
     eventos = Evento.objects.filter(estado='publicado', fecha_fin__gte=ahora).order_by('fecha_inicio')
     return render(request, 'eventos.html', {'eventos': eventos})
 
+def _validar_datos_lugar(request, lugar_actual=None):
+    """Helper centralizado para validar creación y edición de atractivos turísticos."""
+    nombre = request.POST.get('nombre', '').strip()
+    descripcion = request.POST.get('descripcion', '').strip()
+    categoria_id = request.POST.get('categoria', '').strip()
+    lat_raw = request.POST.get('latitud', '').strip().replace(',', '.')
+    lon_raw = request.POST.get('longitud', '').strip().replace(',', '.')
+    precio_raw = request.POST.get('precio', '0.00').strip().replace(',', '.')
+    horario = request.POST.get('horario', '08:00 AM - 06:00 PM').strip()
+    direccion = request.POST.get('direccion', '').strip()
+    telefono = request.POST.get('telefono', '').strip()
+    imagen = request.FILES.get('imagen')
+
+    if not nombre or len(nombre) < 3 or len(nombre) > 200:
+        return None, "⚠️ El nombre del atractivo es obligatorio (entre 3 y 200 caracteres)."
+
+    if not descripcion or len(descripcion) < 10:
+        return None, "⚠️ La descripción debe tener al menos 10 caracteres."
+
+    if categoria_id and (not categoria_id.isdigit() or not Categoria.objects.filter(id=int(categoria_id)).exists()):
+        return None, "⚠️ La categoría seleccionada no es válida."
+
+    # Validar coordenadas dentro del perímetro de Pucusana / Lima Sur para Leaflet.js
+    try:
+        latitud = float(lat_raw) if lat_raw else (lugar_actual.latitud if lugar_actual else -12.4830)
+        longitud = float(lon_raw) if lon_raw else (lugar_actual.longitud if lugar_actual else -76.7960)
+    except ValueError:
+        return None, "⚠️ Latitud y longitud deben ser valores numéricos decimales válidos."
+
+    if not (-12.65 <= latitud <= -12.30) or not (-77.00 <= longitud <= -76.60):
+        return None, "⚠️ Las coordenadas están fuera del distrito de Pucusana (Lat: -12.48 aprox., Lon: -76.79 aprox.)."
+
+    # Validar precio >= 0
+    try:
+        precio = Decimal(precio_raw) if precio_raw else Decimal('0.00')
+    except InvalidOperation:
+        return None, "⚠️ El precio debe ser un monto numérico válido (ej. 0.00 o 15.50)."
+
+    if precio < Decimal('0.00') or precio > Decimal('9999.99'):
+        return None, "⚠️ El precio debe estar entre S/ 0.00 y S/ 9999.99."
+
+    # Validar teléfono opcional (solo dígitos, espacios, +, - y paréntesis)
+    if telefono and not all(c.isdigit() or c in ' +-()' for c in telefono):
+        return None, "⚠️ El teléfono contiene caracteres no válidos."
+
+    # Validar imagen (tipo MIME y tamaño máximo 5 MB)
+    if imagen:
+        tipos_permitidos = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
+        if imagen.content_type not in tipos_permitidos:
+            return None, "⚠️ Formato de imagen no permitido. Usa JPG, PNG o WEBP."
+        if imagen.size > 5 * 1024 * 1024:
+            return None, "⚠️ La imagen supera el tamaño máximo permitido de 5 MB."
+
+    datos = {
+        'nombre': nombre,
+        'descripcion': descripcion,
+        'categoria_id': int(categoria_id) if categoria_id else None,
+        'latitud': round(latitud, 6),
+        'longitud': round(longitud, 6),
+        'precio': precio,
+        'horario': horario[:100] if horario else "08:00 AM - 06:00 PM",
+        'direccion': direccion[:255],
+        'telefono': telefono[:20],
+        'imagen': imagen,
+    }
+    return datos, None
 
 @staff_member_required
 def evento_crear(request):
     categorias = Categoria.objects.all()
     if request.method == 'POST':
-        titulo = request.POST.get('titulo')
-        descripcion = request.POST.get('descripcion')
-        categoria_id = request.POST.get('categoria')
-        fecha_inicio = request.POST.get('fecha_inicio')
-        fecha_fin = request.POST.get('fecha_fin')
-        ubicacion = request.POST.get('ubicacion')
+        titulo = request.POST.get('titulo', '').strip()
+        descripcion = request.POST.get('descripcion', '').strip()
+        categoria_id = request.POST.get('categoria', '').strip()
+        fecha_inicio_raw = request.POST.get('fecha_inicio', '').strip()
+        fecha_fin_raw = request.POST.get('fecha_fin', '').strip()
+        ubicacion = request.POST.get('ubicacion', '').strip()
+        imagen = request.FILES.get('imagen')
 
-        if titulo and fecha_inicio and fecha_fin:
-            Evento.objects.create(
-                titulo=titulo,
-                descripcion=descripcion,
-                categoria_id=categoria_id if categoria_id else None,
-                fecha_inicio=fecha_inicio,
-                fecha_fin=fecha_fin,
-                ubicacion=ubicacion,
-                creado_por=request.user
-            )
-            messages.success(request, "Evento registrado con éxito en la agenda municipal.")
-            return redirect('eventos_publicos')
+        if not titulo or len(titulo) < 4:
+            messages.error(request, "⚠️ El título del evento es obligatorio (mínimo 4 caracteres).")
+            return render(request, 'admin_evento_form.html', {'categorias': categorias})
+
+        if not descripcion or len(descripcion) < 10:
+            messages.error(request, "⚠️ Ingresa una descripción detallada del evento (mínimo 10 caracteres).")
+            return render(request, 'admin_evento_form.html', {'categorias': categorias})
+
+        if not ubicacion or len(ubicacion) < 3:
+            messages.error(request, "⚠️ La ubicación del evento en Pucusana es obligatoria.")
+            return render(request, 'admin_evento_form.html', {'categorias': categorias})
+
+        fecha_inicio = parse_datetime(fecha_inicio_raw)
+        fecha_fin = parse_datetime(fecha_fin_raw)
+
+        if not fecha_inicio or not fecha_fin:
+            messages.error(request, "⚠️ Debes ingresar fechas y horas de inicio y fin válidas.")
+            return render(request, 'admin_evento_form.html', {'categorias': categorias})
+
+        if fecha_fin <= fecha_inicio:
+            messages.error(request, "⚠️ La fecha y hora de finalización debe ser posterior a la de inicio.")
+            return render(request, 'admin_evento_form.html', {'categorias': categorias})
+
+        if imagen:
+            if imagen.content_type not in ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']:
+                messages.error(request, "⚠️ El flyer del evento debe ser una imagen JPG, PNG o WEBP.")
+                return render(request, 'admin_evento_form.html', {'categorias': categorias})
+            if imagen.size > 5 * 1024 * 1024:
+                messages.error(request, "⚠️ El flyer supera el límite máximo de 5 MB.")
+                return render(request, 'admin_evento_form.html', {'categorias': categorias})
+
+        Evento.objects.create(
+            titulo=titulo[:200],
+            descripcion=descripcion,
+            categoria_id=int(categoria_id) if categoria_id.isdigit() else None,
+            fecha_inicio=fecha_inicio,
+            fecha_fin=fecha_fin,
+            ubicacion=ubicacion[:255],
+            imagen=imagen,
+            creado_por=request.user
+        )
+        messages.success(request, "✅ Evento registrado con éxito en la agenda municipal.")
+        return redirect('eventos_publicos')
 
     return render(request, 'admin_evento_form.html', {'categorias': categorias})
 
