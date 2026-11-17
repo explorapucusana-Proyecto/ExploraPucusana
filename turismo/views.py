@@ -16,6 +16,8 @@ from django.utils import timezone
 
 from .models import Lugar, Categoria, PerfilUsuario, Resena, Evento, VisitaFisica, PrediccionTendencia
 from .ml_engine import obtener_recomendaciones_rf, ejecutar_batch_predictivo_semanal
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
 RADIO_TOLERANCIA_METROS = 300.0  # Perímetro de presencia física en el atractivo en metros
 
@@ -315,24 +317,50 @@ def detalle_lugar(request, lugar_id):
     lugar = get_object_or_404(Lugar, id=lugar_id)
     resenas = lugar.resenas.all().order_by('-fecha')
 
-    if request.method == 'POST' and request.user.is_authenticated:
+    if request.method == 'POST':
+        if not request.user.is_authenticated:
+            messages.error(request, "⚠️ Debes iniciar sesión para publicar una reseña.")
+            return redirect('login')
+
         comentario_texto = request.POST.get('comentario', '').strip()
-        calificacion_num = request.POST.get('calificacion', '').strip()
+        calificacion_raw = request.POST.get('calificacion', '').strip()
 
-        if comentario_texto and calificacion_num:
-            palabras_prohibidas = ['insulto1', 'obsceno2']
-            if any(palabra in comentario_texto.lower() for palabra in palabras_prohibidas):
-                messages.error(request, "Tu comentario contiene palabras inapropiadas no permitidas en la plataforma.")
-                return redirect('detalle_lugar', lugar_id=lugar.id)
-
-            Resena.objects.create(
-                lugar=lugar,
-                usuario=request.user,
-                calificacion=int(calificacion_num),
-                comentario=comentario_texto
-            )
-            messages.success(request, "¡Tu reseña ha sido publicada exitosamente!")
+        # 1. Validar calificación numérica estricta (1 a 5 estrellas)
+        if not calificacion_raw.isdigit() or int(calificacion_raw) not in range(1, 6):
+            messages.error(request, "⚠️ Selecciona una calificación válida entre 1 y 5 estrellas.")
             return redirect('detalle_lugar', lugar_id=lugar.id)
+
+        # 2. Validar longitud del comentario (evitar vacíos, puntos sueltos o textos excesivos)
+        if len(comentario_texto) < 5:
+            messages.error(request, "⚠️ Tu comentario es muy corto (mínimo 5 caracteres).")
+            return redirect('detalle_lugar', lugar_id=lugar.id)
+
+        if len(comentario_texto) > 600:
+            messages.error(request, "⚠️ Tu comentario excede el límite permitido de 600 caracteres.")
+            return redirect('detalle_lugar', lugar_id=lugar.id)
+
+        # 3. Filtro de palabras inapropiadas ampliado
+        palabras_prohibidas = [
+            'insulto1', 'obsceno2', 'idiota', 'estupido', 'estúpido',
+            'imbecil', 'imbécil', 'mierda', 'puta', 'carajo', 'basura'
+        ]
+        if any(palabra in comentario_texto.lower() for palabra in palabras_prohibidas):
+            messages.error(request, "⚠️ Tu comentario contiene lenguaje inapropiado no permitido en la plataforma.")
+            return redirect('detalle_lugar', lugar_id=lugar.id)
+
+        # 4. Evitar doble reseña idéntica consecutiva del mismo usuario
+        if Resena.objects.filter(lugar=lugar, usuario=request.user, comentario__iexact=comentario_texto).exists():
+            messages.warning(request, "ℹ️ Ya habías publicado exactamente esta misma reseña para este atractivo.")
+            return redirect('detalle_lugar', lugar_id=lugar.id)
+
+        Resena.objects.create(
+            lugar=lugar,
+            usuario=request.user,
+            calificacion=int(calificacion_raw),
+            comentario=comentario_texto
+        )
+        messages.success(request, "¡Tu reseña ha sido publicada exitosamente!")
+        return redirect('detalle_lugar', lugar_id=lugar.id)
 
     contexto = {
         'lugar': lugar,
@@ -384,11 +412,26 @@ def evento_crear(request):
 
 
 def registro(request):
+    if request.user.is_authenticated:
+        return redirect('index')
+
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
-        correo_ingresado = request.POST.get('email', '').strip()
+        correo_ingresado = request.POST.get('email', '').strip().lower()
 
-        if correo_ingresado and User.objects.filter(email__iexact=correo_ingresado).exists():
+        # 1. Validar correo obligatorio y formato válido
+        if not correo_ingresado:
+            messages.error(request, "⚠️ El correo electrónico es obligatorio.")
+            return render(request, 'registro.html', {'form': form})
+
+        try:
+            validate_email(correo_ingresado)
+        except ValidationError:
+            messages.error(request, "⚠️ Ingresa un correo electrónico con formato válido (ej. usuario@dominio.com).")
+            return render(request, 'registro.html', {'form': form})
+
+        # 2. Validar unicidad de correo
+        if User.objects.filter(email__iexact=correo_ingresado).exists():
             messages.error(request, "⚠️ El correo electrónico ya se encuentra registrado en Explora Pucusana.")
             return render(request, 'registro.html', {'form': form})
 
@@ -396,11 +439,14 @@ def registro(request):
             usuario = form.save(commit=False)
             usuario.email = correo_ingresado
             usuario.save()
-            PerfilUsuario.objects.create(usuario=usuario)
-            # Solución de backend explícito para coexistir con allauth
+            PerfilUsuario.objects.get_or_create(usuario=usuario)
             login(request, usuario, backend='django.contrib.auth.backends.ModelBackend')
             messages.success(request, f"¡Registro completado con éxito! Bienvenido(a), {usuario.username}.")
             return redirect('perfil')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"⚠️ {error}")
     else:
         form = UserCreationForm()
 
@@ -413,11 +459,42 @@ def perfil(request):
     todas_categorias = Categoria.objects.all()
 
     if request.method == 'POST':
-        perfil_obj.edad = request.POST.get('edad') or None
-        perfil_obj.nacionalidad = request.POST.get('nacionalidad', 'Peruano')
-        intereses_seleccionados = request.POST.getlist('intereses')
-        perfil_obj.intereses.set(intereses_seleccionados)
+        edad_raw = request.POST.get('edad', '').strip()
+        nacionalidad_raw = request.POST.get('nacionalidad', '').strip()
+        intereses_raw = request.POST.getlist('intereses')
+
+        # 1. Validar edad (numérica y rango realista 10 - 100 años)
+        if not edad_raw or not edad_raw.isdigit():
+            messages.error(request, "⚠️ Debes ingresar una edad válida en números enteros.")
+            return redirect('perfil')
+
+        edad_val = int(edad_raw)
+        if edad_val < 10 or edad_val > 100:
+            messages.error(request, "⚠️ La edad debe estar comprendida entre 10 y 100 años.")
+            return redirect('perfil')
+
+        # 2. Validar nacionalidad (obligatoria, longitud y sin solo números/símbolos)
+        if not nacionalidad_raw or len(nacionalidad_raw) < 3 or len(nacionalidad_raw) > 60:
+            messages.error(request, "⚠️ Ingresa una nacionalidad válida (entre 3 y 60 caracteres).")
+            return redirect('perfil')
+
+        if any(char.isdigit() for char in nacionalidad_raw):
+            messages.error(request, "⚠️ La nacionalidad no puede contener números.")
+            return redirect('perfil')
+
+        # 3. Validar selección de intereses válida para el modelo Random Forest
+        ids_validos = list(
+            Categoria.objects.filter(id__in=[i for i in intereses_raw if i.isdigit()]).values_list('id', flat=True)
+        )
+        if not ids_validos:
+            messages.error(request, "⚠️ Selecciona al menos una categoría de interés para personalizar tus recomendaciones con IA.")
+            return redirect('perfil')
+
+        perfil_obj.edad = edad_val
+        perfil_obj.nacionalidad = nacionalidad_raw
+        perfil_obj.intereses.set(ids_validos)
         perfil_obj.save()
+
         messages.success(request, "🎯 Preferencias actualizadas. El motor de Inteligencia Artificial ha reestructurado tu catálogo.")
         return redirect('index')
 
