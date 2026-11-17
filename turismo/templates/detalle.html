@@ -138,7 +138,7 @@
 
         <!-- FORMULARIO DE NUEVA RESEÑA -->
         {% if user.is_authenticated %}
-        <form method="POST" class="bg-slate-50 p-6 rounded-2xl border border-slate-200/80 mb-10">
+        <form id="form-resena" method="POST" class="bg-slate-50 p-6 rounded-2xl border border-slate-200/80 mb-10">
             {% csrf_token %}
             <h4 class="font-bold text-slate-800 text-base mb-4">{% trans "Escribe tu opinión," %} {{ user.username }}:</h4>
             
@@ -154,14 +154,49 @@
             </div>
             
             <div class="mb-4">
-                <label class="block text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">{% trans "Tu Comentario" %}</label>
-                <textarea name="comentario" rows="3" class="textarea textarea-bordered w-full border-slate-300 rounded-xl text-sm" placeholder="{% trans '¿Qué tal estuvo tu experiencia en este lugar?...' %}" required></textarea>
+                <div class="flex justify-between items-center mb-2">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Tu Comentario" %}</label>
+                    <span id="contador-resena" class="text-xs text-slate-400 font-mono">0 / 600</span>
+                </div>
+                <textarea id="txt-comentario" name="comentario" rows="3" minlength="5" maxlength="600"
+                          class="textarea textarea-bordered w-full border-slate-300 rounded-xl text-sm" 
+                          placeholder="{% trans '¿Qué tal estuvo tu experiencia en este lugar?... (mínimo 5 caracteres)' %}" required></textarea>
+                <p id="error-resena" class="hidden text-red-600 text-xs mt-1 font-medium">
+                    ⚠️ {% trans "Escribe un comentario válido de al menos 5 caracteres (sin contar espacios)." %}
+                </p>
             </div>
             
             <button type="submit" class="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white border-none rounded-xl px-6 gap-2">
                 <i class="fa-solid fa-paper-plane text-xs"></i> {% trans "Publicar Reseña" %}
             </button>
         </form>
+
+        <script>
+        (function() {
+            const txt = document.getElementById('txt-comentario');
+            const contador = document.getElementById('contador-resena');
+            const err = document.getElementById('error-resena');
+            const form = document.getElementById('form-resena');
+
+            if (txt && contador) {
+                txt.addEventListener('input', () => {
+                    contador.textContent = `${txt.value.length} / 600`;
+                });
+            }
+            if (form && txt) {
+                form.addEventListener('submit', (e) => {
+                    if (txt.value.trim().length < 5) {
+                        e.preventDefault();
+                        err.classList.remove('hidden');
+                        txt.classList.add('border-red-500');
+                    } else {
+                        err.classList.add('hidden');
+                        txt.classList.remove('border-red-500');
+                    }
+                });
+            }
+        })();
+        </script>
         {% else %}
         <div class="bg-blue-50 border border-blue-100 p-4 rounded-2xl text-center mb-10">
             <p class="text-blue-900 text-sm">

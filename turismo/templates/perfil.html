@@ -4,23 +4,22 @@
 {% block title %}{% trans "Mi Perfil" %} — {% trans "Explora Pucusana" %}{% endblock %}
 
 {% block content %}
-<!-- Bloque del Globo Flotante de Notificación de Éxito (Django Messages) -->
+<!-- Bloque del Globo Flotante de Notificación (Éxito / Error) -->
 {% if messages %}
 <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 animate-fade-in-down">
     {% for message in messages %}
-    <div class="flex items-center gap-3 bg-emerald-600 text-white px-5 py-4 rounded-xl shadow-2xl min-w-[300px] border border-emerald-500 transition-all duration-300 max-w-md">
-        <span class="text-2xl">🤖</span>
+    <div class="flex items-center gap-3 {% if 'error' in message.tags %}bg-red-600 border-red-500{% elif 'warning' in message.tags %}bg-amber-600 border-amber-500{% else %}bg-emerald-600 border-emerald-500{% endif %} text-white px-5 py-4 rounded-xl shadow-2xl min-w-[300px] border transition-all duration-300 max-w-md">
+        <span class="text-2xl">{% if 'error' in message.tags %}⚠️{% else %}🤖{% endif %}</span>
         <div class="flex-1">
             <p class="font-semibold text-sm leading-tight">{{ message }}</p>
         </div>
-        <button onclick="this.parentElement.remove()" class="text-white hover:text-emerald-200 transition-colors font-bold text-lg p-1">
+        <button type="button" onclick="this.parentElement.remove()" class="text-white hover:opacity-80 transition-opacity font-bold text-lg p-1">
             ✕
         </button>
     </div>
     {% endfor %}
 </div>
 
-<!-- Pequeño script para desvanecer el globo automáticamente después de 5 segundos -->
 <script>
     setTimeout(() => {
         const toastContainer = document.getElementById('toast-container');
@@ -28,7 +27,7 @@
             toastContainer.style.opacity = '0';
             setTimeout(() => toastContainer.remove(), 300);
         }
-    }, 5000);
+    }, 6000);
 </script>
 {% endif %}
 
@@ -45,7 +44,6 @@
             </div>
             <h2 class="text-3xl font-bold">{% trans "Perfil de" %} {{ user.username }}</h2>
             
-            <!-- Muestra del Correo Electrónico del Turista -->
             {% if user.email %}
             <p class="text-blue-200 text-sm mt-1 flex items-center justify-center gap-1.5 font-mono">
                 📧 <span>{{ user.email }}</span>
@@ -57,16 +55,21 @@
             <p class="text-blue-100 mt-2 text-sm">{% trans "Personaliza tu experiencia en Explora Pucusana" %}</p>
         </div>
 
-        <form method="POST" class="p-8">
+        <form id="form-perfil" method="POST" class="p-8" novalidate>
             {% csrf_token %}
             
-            <h3 class="text-xl font-bold text-gray-800 border-b pb-2 mb-6">{% trans "Tus Intereses Turísticos" %} 🎯</h3>
-            <p class="text-gray-500 mb-6 text-sm">{% trans "Selecciona las categorías que más te gustan. Usaremos Inteligencia Artificial para recomendarte los mejores lugares." %}</p>
+            <h3 class="text-xl font-bold text-gray-800 border-b pb-2 mb-2">{% trans "Tus Intereses Turísticos" %} 🎯</h3>
+            <p class="text-gray-500 mb-4 text-sm">{% trans "Selecciona al menos una categoría que te guste. Usaremos Inteligencia Artificial para recomendarte los mejores lugares." %}</p>
             
+            <!-- Alerta inline si no marca ningún interés -->
+            <p id="error-intereses" class="hidden text-red-600 text-xs font-semibold mb-3 bg-red-50 border border-red-200 px-3 py-2 rounded-lg">
+                ⚠️ {% trans "Debes seleccionar al menos una categoría de interés para activar las recomendaciones con IA." %}
+            </p>
+
             <div class="flex flex-wrap gap-3 mb-10">
                 {% for cat in categorias %}
                 <label class="cursor-pointer relative">
-                    <input type="checkbox" name="intereses" value="{{ cat.id }}" class="peer sr-only" 
+                    <input type="checkbox" name="intereses" value="{{ cat.id }}" class="peer sr-only chk-interes" 
                            {% if cat.id in intereses_actuales %}checked{% endif %} />
                     
                     <div class="px-5 py-3 rounded-full border-2 border-gray-200 bg-white text-gray-600 font-medium transition-all duration-200 peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:text-blue-800 hover:border-blue-300 shadow-sm flex items-center gap-2 select-none">
@@ -80,12 +83,20 @@
             <h3 class="text-xl font-bold text-gray-800 border-b pb-2 mb-6">{% trans "Datos Demográficos" %} 🌎</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{% trans "Edad" %}</label>
-                    <input type="number" name="edad" value="{{ perfil.edad|default_if_none:'' }}" placeholder="{% trans 'Ej. 25' %}" class="input input-bordered w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{% trans "Edad" %} <span class="text-red-500">*</span></label>
+                    <input type="number" id="input-edad" name="edad" min="10" max="100" step="1" required
+                           value="{{ perfil.edad|default_if_none:'' }}" 
+                           placeholder="{% trans 'Ej. 25' %}" 
+                           class="input input-bordered w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                    <p id="error-edad" class="hidden text-red-600 text-xs mt-1 font-medium">⚠️ Ingresa una edad válida entre 10 y 100 años.</p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{% trans "Nacionalidad" %}</label>
-                    <input type="text" name="nacionalidad" value="{{ perfil.nacionalidad|default_if_none:'Peruano' }}" class="input input-bordered w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{% trans "Nacionalidad" %} <span class="text-red-500">*</span></label>
+                    <input type="text" id="input-nacionalidad" name="nacionalidad" minlength="3" maxlength="60" required
+                           value="{{ perfil.nacionalidad|default_if_none:'Peruano' }}" 
+                           placeholder="{% trans 'Ej. Peruano' %}"
+                           class="input input-bordered w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                    <p id="error-nacionalidad" class="hidden text-red-600 text-xs mt-1 font-medium">⚠️ Ingresa una nacionalidad válida (solo letras, 3 a 60 caracteres).</p>
                 </div>
             </div>
 
@@ -97,4 +108,51 @@
         </form>
     </div>
 </div>
+
+<script>
+document.getElementById('form-perfil').addEventListener('submit', function(e) {
+    let valido = true;
+
+    // 1. Validar al menos un interés marcado
+    const marcados = document.querySelectorAll('.chk-interes:checked').length;
+    const errIntereses = document.getElementById('error-intereses');
+    if (marcados === 0) {
+        errIntereses.classList.remove('hidden');
+        valido = false;
+    } else {
+        errIntereses.classList.add('hidden');
+    }
+
+    // 2. Validar edad (10 a 100)
+    const inputEdad = document.getElementById('input-edad');
+    const errEdad = document.getElementById('error-edad');
+    const edadVal = parseInt(inputEdad.value, 10);
+    if (isNaN(edadVal) || edadVal < 10 || edadVal > 100 || !Number.isInteger(Number(inputEdad.value))) {
+        errEdad.classList.remove('hidden');
+        inputEdad.classList.add('border-red-500');
+        valido = false;
+    } else {
+        errEdad.classList.add('hidden');
+        inputEdad.classList.remove('border-red-500');
+    }
+
+    // 3. Validar nacionalidad (sin números, 3..60 chars)
+    const inputNac = document.getElementById('input-nacionalidad');
+    const errNac = document.getElementById('error-nacionalidad');
+    const nacVal = inputNac.value.trim();
+    const regexNac = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s\-]{3,60}$/;
+    if (!regexNac.test(nacVal)) {
+        errNac.classList.remove('hidden');
+        inputNac.classList.add('border-red-500');
+        valido = false;
+    } else {
+        errNac.classList.add('hidden');
+        inputNac.classList.remove('border-red-500');
+    }
+
+    if (!valido) {
+        e.preventDefault();
+    }
+});
+</script>
 {% endblock %}
