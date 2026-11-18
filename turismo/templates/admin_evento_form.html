@@ -9,18 +9,32 @@
         <h1 class="text-2xl font-black text-slate-900 mt-2">Registrar Evento en Pucusana</h1>
     </div>
 
+    {% if messages %}
+    <div class="mb-5 space-y-2">
+        {% for message in messages %}
+        <div class="p-4 rounded-2xl text-sm font-semibold border {% if 'error' in message.tags %}bg-red-50 text-red-700 border-red-200{% else %}bg-emerald-50 text-emerald-700 border-emerald-200{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-100">
-        <form method="POST" enctype="multipart/form-data" class="space-y-4">
+        <form id="form-evento" method="POST" enctype="multipart/form-data" class="space-y-4">
             {% csrf_token %}
 
             <div>
                 <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Título del Evento *</label>
-                <input type="text" name="titulo" required class="input input-bordered w-full rounded-xl text-sm" placeholder="Ej. Festival Marino y del Ceviche">
+                <input type="text" name="titulo" minlength="4" maxlength="200" required
+                       class="input input-bordered w-full rounded-xl text-sm"
+                       placeholder="Ej. Festival Marino y del Ceviche">
             </div>
 
             <div>
                 <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Descripción *</label>
-                <textarea name="descripcion" rows="3" required class="textarea textarea-bordered w-full rounded-xl text-sm" placeholder="Detalle de actividades, horarios y dinámicas..."></textarea>
+                <textarea name="descripcion" rows="3" minlength="10" required
+                          class="textarea textarea-bordered w-full rounded-xl text-sm"
+                          placeholder="Detalle de actividades, horarios y dinámicas (mínimo 10 caracteres)..."></textarea>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -35,20 +49,28 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Ubicación *</label>
-                    <input type="text" name="ubicacion" required class="input input-bordered w-full rounded-xl text-sm" placeholder="Ej. Malecón San Martín">
+                    <input type="text" name="ubicacion" minlength="3" maxlength="255" required
+                           class="input input-bordered w-full rounded-xl text-sm"
+                           placeholder="Ej. Malecón San Martín">
                 </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Fecha y Hora de Inicio *</label>
-                    <input type="datetime-local" name="fecha_inicio" required class="input input-bordered w-full rounded-xl text-sm">
+                    <input type="datetime-local" id="fecha_inicio" name="fecha_inicio" required
+                           class="input input-bordered w-full rounded-xl text-sm">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Fecha y Hora de Fin *</label>
-                    <input type="datetime-local" name="fecha_fin" required class="input input-bordered w-full rounded-xl text-sm">
+                    <input type="datetime-local" id="fecha_fin" name="fecha_fin" required
+                           class="input input-bordered w-full rounded-xl text-sm">
                 </div>
             </div>
+
+            <p id="error-fechas" class="hidden text-red-600 text-xs font-semibold bg-red-50 border border-red-200 px-3 py-2 rounded-xl">
+                ⚠️ La fecha y hora de finalización debe ser posterior a la fecha y hora de inicio.
+            </p>
 
             <div class="pt-4 flex justify-end gap-3 border-t border-slate-100">
                 <a href="{% url 'eventos_publicos' %}" class="btn btn-ghost rounded-xl">Cancelar</a>
@@ -59,4 +81,34 @@
         </form>
     </div>
 </div>
+
+<script>
+(function() {
+    const inicio = document.getElementById('fecha_inicio');
+    const fin = document.getElementById('fecha_fin');
+    const errorFechas = document.getElementById('error-fechas');
+    const form = document.getElementById('form-evento');
+
+    if (inicio && fin) {
+        inicio.addEventListener('change', () => {
+            if (inicio.value) {
+                fin.min = inicio.value;
+            }
+        });
+    }
+
+    if (form && inicio && fin) {
+        form.addEventListener('submit', (e) => {
+            if (inicio.value && fin.value && new Date(fin.value) <= new Date(inicio.value)) {
+                e.preventDefault();
+                errorFechas.classList.remove('hidden');
+                fin.classList.add('border-red-500');
+            } else {
+                errorFechas.classList.add('hidden');
+                fin.classList.remove('border-red-500');
+            }
+        });
+    }
+})();
+</script>
 {% endblock %}
